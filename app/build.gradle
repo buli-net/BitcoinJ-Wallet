@@ -10,8 +10,6 @@ android {
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
-        
-        // ✅ Fix lỗi vector drawable: không tạo PNG thay thế
         vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
@@ -43,7 +41,8 @@ dependencies {
     implementation 'com.github.kenglxn.QRGen:android:2.2.0'
     implementation 'org.bitcoinj:bitcoinj-core:0.14.4'
     implementation 'com.squareup.okhttp:okhttp:2.7.2'
-    implementation 'com.squareup.okio:1.6.0'
+    // ✅ ĐÃ SỬA LỖI QUAN TRỌNG: thiếu tên thư viện okio
+    implementation 'com.squareup.okio:okio:1.6.0'
     implementation 'org.slf4j:slf4j-api:1.7.20'
     implementation 'org.slf4j:slf4j-simple:1.7.12'
 }
