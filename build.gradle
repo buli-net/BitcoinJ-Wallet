@@ -4,8 +4,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // ✅ Thay 2.3.3 → 2.3.4 (phiên bản cuối dòng 2.3.x, có trên kho)
-        classpath 'com.android.tools.build:gradle:2.3.4'
+        // ✅ Nâng lên phiên bản có trên kho, tương thích dự án cũ
+        classpath 'com.android.tools.build:gradle:3.0.1'
         classpath 'org.androidannotations:androidannotations:4.6.0'
     }
 }
