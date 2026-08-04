@@ -1,12 +1,11 @@
 buildscript {
     repositories {
-        // Dùng đường dẫn chính xác của Google Maven cho phiên bản cũ
         maven { url 'https://dl.google.com/dl/android/maven2/' }
         mavenCentral()
     }
     dependencies {
-        // Giữ nguyên phiên bản tương thích với dự án
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        // ✅ Thay 2.3.3 → 2.3.4 (phiên bản cuối dòng 2.3.x, có trên kho)
+        classpath 'com.android.tools.build:gradle:2.3.4'
         classpath 'org.androidannotations:androidannotations:4.6.0'
     }
 }
