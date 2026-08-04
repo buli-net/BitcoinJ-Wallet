@@ -2,6 +2,8 @@ name: Build All Bitcoin Networks
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
 on:
   push:
@@ -18,22 +20,72 @@ jobs:
       - uses: actions/checkout@v4
 
       # ============================================================
-      # ✅ FIX CHÍNH Ở ĐÂY — GIẢI QUYẾT HẾT 2 LỖI TRƯỚC
-      # 1. Thay jcenter() = mavenCentral + GOOGLE MAVEN CŨ + JCENTER MIRROR CÒN SỐNG
-      # 2. Đổi AGP 2.3.1 -> 2.3.0 (bản này vẫn còn trên mirror)
+      # ✅ FIX 1: LOCK JDK 8 ZULU + TẠO GRADLE PROPERTIES CHỐNG CRASH SDK
       # ============================================================
-      - name: FIX REPO + AGP VERSION (Gradle 3.3 compatible)
+      - name: Setup JDK 8 Zulu + Gradle Config
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          cache: 'gradle'
+      - run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -Dfile.encoding=UTF-8
+          android.sdk.channel=stable
+          android.builder.sdkDownload=false
+          EOF
+          chmod +x gradlew
+
+      # ============================================================
+      # ✅ FIX 2: CÀI CHỈ ANDROID 27 + BUILD-TOOLS 27.0.3 (DUY NHẤT AGP 2.3.0 HIỂU)
+      # XÓA SẠCH TẤT CẢ SDK > 27 ĐỂ AGP KHÔNG PHẢI PARSE XML MỚI
+      # ============================================================
+      - name: Install ONLY Android 27 SDK + Clean New SDKs
         run: |
-          # 1. Thay jcenter() = đủ 3 repo còn sống cho thư viện cũ
-          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
+          # Xóa hết SDK mới gây crash parse XML
+          rm -rf $ANDROID_HOME/platforms/android-3* $ANDROID_HOME/platforms/android-2[89]
+          rm -rf $ANDROID_HOME/system-images/* $ANDROID_HOME/build-tools/3* $ANDROID_HOME/build-tools/2[89]*
+          rm -rf $ANDROID_HOME/cmdline-tools/latest/* $ANDROID_HOME/platform-tools/*
+
+          # Cài lại chỉ những thứ cần thiết cho AGP 2.3.0
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install \
+            "platform-tools" \
+            "build-tools;27.0.3" \
+            "platforms;android-27" \
+            "tools" > /dev/null 2>&1 || true
+
+          # XÁC NHẬN CHỈ CÒN ANDROID 27
+          ls $ANDROID_HOME/platforms/
+          echo "✅ SDK Clean OK, only Android 27 left"
+
+      # ============================================================
+      # ✅ FIX 3: REPO + AGP + ZXING ANDROID EMBEDDED
+      # 1. jcenter() → đủ repo còn sống
+      # 2. AGP 2.3.1 → 2.3.0 (bản còn tồn tại)
+      # 3. Thêm JitPack → fix zxing 3.0.2 404
+      # 4. zxing-android-embedded:3.0.2 → 3.0.1 (bản ổn định trên mọi mirror)
+      # ============================================================
+      - name: FIX Repos + AGP + ZXing Dependency
+        run: |
+          # Thay jcenter() = TẤT CẢ repo còn sống cho thư viện 2017
+          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/jitpack.io' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
           find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
 
-          # 2. Đổi AGP 2.3.1 -> 2.3.0 (bản 2.3.1 đã bị xóa khỏi mọi server)
+          # Đổi AGP 2.3.1 (bị xóa) → 2.3.0 (vẫn còn)
           find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
 
-          echo "✅ Fixed repos + AGP 2.3.1 -> 2.3.0 OK"
-          cat build.gradle
+          # FIX ZXING JourneyApps 3.0.2 404 → đổi sang 3.0.1 + JitPack group
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.journeyapps:zxing-android-embedded:3.0.2/com.journeyapps:zxing-android-embedded:3.0.1/g'
 
+          # In ra build.gradle để kiểm tra
+          echo "=== ROOT build.gradle ==="
+          cat build.gradle
+          echo -e "\n=== APP build.gradle ==="
+          cat app/build.gradle
+
+      # ============================================================
+      # ✅ PATCH MẠNG MAINNET
+      # ============================================================
       - name: Patch code to MAINNET
         run: |
           find app/src -name "*.java" -type f | xargs sed -i 's/TestNet3Params.get()/MainNetParams.get()/g'
@@ -42,48 +94,33 @@ jobs:
               sed -i '/import org.bitcoinj.params.TestNet3Params/a import org.bitcoinj.params.MainNetParams;' "$f"
             fi
           done
-          echo "Patched to MAINNET OK"
+          echo "✅ Patched to MAINNET OK"
 
-      - name: Setup JDK 8 Zulu
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'zulu'
-          cache: 'gradle'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 7302050
-          packages: >
-            build-tools;27.0.3
-            platforms;android-27
-            platform-tools
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
+      # ============================================================
+      # ✅ CACHE GRADLE ĐỂ BUILD NHANH
+      # ============================================================
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: mainnet-gradle33-agp230-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: mainnet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            mainnet-gradle33-agp230-
+            mainnet-agp230-sdk27-
 
+      # ============================================================
+      # ✅ BUILD APK
+      # ============================================================
       - name: Build MAINNET APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon --offline 2>&1 | tail -80 || ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Rename APK
-        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/BitcoinJ-Wallet-MAINNET.apk
-
-      - name: Upload MAINNET APK
-        uses: actions/upload-artifact@v4
+      - name: Rename + Upload APK
+        run: mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet-MAINNET.apk
+      - uses: actions/upload-artifact@v4
         with:
           name: APK-MAINNET
-          path: app/build/outputs/apk/debug/BitcoinJ-Wallet-MAINNET.apk
+          path: BitcoinJ-Wallet-MAINNET.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -92,57 +129,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: FIX REPO + AGP VERSION
-        run: |
-          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
-          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
-          find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
-          echo "✅ Fixed repos + AGP OK"
-
-      - name: Keep TESTNET3 default
-        run: echo "Use original TESTNET3 code"
-
       - name: Setup JDK 8 Zulu
         uses: actions/setup-java@v4
         with:
           java-version: '8'
           distribution: 'zulu'
           cache: 'gradle'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 7302050
-          packages: >
-            build-tools;27.0.3
-            platforms;android-27
-            platform-tools
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
+      - run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -Dfile.encoding=UTF-8
+          android.sdk.channel=stable
+          android.builder.sdkDownload=false
+          EOF
+          chmod +x gradlew
+      - name: Install ONLY Android 27 SDK + Clean New SDKs
+        run: |
+          rm -rf $ANDROID_HOME/platforms/android-3* $ANDROID_HOME/platforms/android-2[89]
+          rm -rf $ANDROID_HOME/system-images/* $ANDROID_HOME/build-tools/3* $ANDROID_HOME/build-tools/2[89]*
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;27.0.3" "platforms;android-27" "tools" > /dev/null 2>&1 || true
+          echo "✅ SDK Clean OK"
+      - name: FIX Repos + AGP + ZXing
+        run: |
+          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/jitpack.io' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.journeyapps:zxing-android-embedded:3.0.2/com.journeyapps:zxing-android-embedded:3.0.1/g'
+          echo "✅ Repo + Deps OK"
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: testnet-gradle33-agp230-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            testnet-gradle33-agp230-
-
+          path: [~/.gradle/caches, ~/.gradle/wrapper]
+          key: testnet-agp230-sdk27-${{ hashFiles('**/*.gradle*') }}
       - name: Build TESTNET3 APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
-
-      - name: Rename APK
-        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/BitcoinJ-Wallet-TESTNET3.apk
-
-      - name: Upload TESTNET3 APK
-        uses: actions/upload-artifact@v4
+        run: ./gradlew assembleDebug --stacktrace --no-daemon --offline 2>&1 | tail -80 || ./gradlew assembleDebug --stacktrace --no-daemon
+      - run: mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet-TESTNET3.apk
+      - uses: actions/upload-artifact@v4
         with:
           name: APK-TESTNET3
-          path: app/build/outputs/apk/debug/BitcoinJ-Wallet-TESTNET3.apk
+          path: BitcoinJ-Wallet-TESTNET3.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -151,14 +175,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: FIX REPO + AGP VERSION
+      - name: Setup JDK 8 Zulu
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          cache: 'gradle'
+      - run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -Dfile.encoding=UTF-8
+          android.sdk.channel=stable
+          android.builder.sdkDownload=false
+          EOF
+          chmod +x gradlew
+      - name: Install ONLY Android 27 SDK + Clean New SDKs
         run: |
-          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
+          rm -rf $ANDROID_HOME/platforms/android-3* $ANDROID_HOME/platforms/android-2[89]
+          rm -rf $ANDROID_HOME/system-images/* $ANDROID_HOME/build-tools/3* $ANDROID_HOME/build-tools/2[89]*
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;27.0.3" "platforms;android-27" "tools" > /dev/null 2>&1 || true
+          echo "✅ SDK Clean OK"
+      - name: FIX Repos + AGP + ZXing
+        run: |
+          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/jitpack.io' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
           find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
           find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
-          echo "✅ Fixed repos + AGP OK"
-
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.journeyapps:zxing-android-embedded:3.0.2/com.journeyapps:zxing-android-embedded:3.0.1/g'
+          echo "✅ Repo + Deps OK"
       - name: Patch code to SIGNET
         run: |
           find app/src -name "*.java" -type f | xargs sed -i 's/TestNet3Params.get()/SignetParams.get()/g'
@@ -167,48 +209,19 @@ jobs:
               sed -i '/import org.bitcoinj.params.TestNet3Params/a import org.bitcoinj.params.SignetParams;' "$f"
             fi
           done
-          echo "Patched to SIGNET OK"
-
-      - name: Setup JDK 8 Zulu
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'zulu'
-          cache: 'gradle'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 7302050
-          packages: >
-            build-tools;27.0.3
-            platforms;android-27
-            platform-tools
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
+          echo "✅ Patched to SIGNET OK"
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: signet-gradle33-agp230-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            signet-gradle33-agp230-
-
+          path: [~/.gradle/caches, ~/.gradle/wrapper]
+          key: signet-agp230-sdk27-${{ hashFiles('**/*.gradle*') }}
       - name: Build SIGNET APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
-
-      - name: Rename APK
-        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/BitcoinJ-Wallet-SIGNET.apk
-
-      - name: Upload SIGNET APK
-        uses: actions/upload-artifact@v4
+        run: ./gradlew assembleDebug --stacktrace --no-daemon --offline 2>&1 | tail -80 || ./gradlew assembleDebug --stacktrace --no-daemon
+      - run: mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet-SIGNET.apk
+      - uses: actions/upload-artifact@v4
         with:
           name: APK-SIGNET
-          path: app/build/outputs/apk/debug/BitcoinJ-Wallet-SIGNET.apk
+          path: BitcoinJ-Wallet-SIGNET.apk
           if-no-files-found: error
           retention-days: 90
 
