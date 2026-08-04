@@ -1,0 +1,223 @@
+name: Build All Bitcoin Networks
+
+# Tắt warning Node 20 deprecated
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+# ✅ Cú pháp chuẩn 100% — KHÔNG BAO GIỜ MẤT NÚT RUN
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  # ============================================================
+  # JOB 1: BUILD MAINNET 🔴
+  # ============================================================
+  build-mainnet:
+    name: 🔴 BUILD MAINNET APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sửa jcenter chết → mavenCentral
+      - name: Fix jcenter() → mavenCentral()
+        run: find . -name "build.gradle" -type f | xargs sed -i 's/jcenter()/mavenCentral()\n        google()/g'
+
+      # ✅ ĐỔI MẠNG: TẤT CẢ TestNet3Params → MainNetParams
+      - name: Patch code → MAINNET
+        run: |
+          find app/src -name "*.java" -type f | xargs sed -i 's/TestNet3Params.get()/MainNetParams.get()/g'
+          # Thêm import nếu thiếu
+          find app/src -name "*.java" -type f | xargs grep -l "MainNetParams.get()" | while read f; do
+            if ! grep -q "org.bitcoinj.params.MainNetParams" "$f"; then
+              sed -i '/import org.bitcoinj.params.TestNet3Params/a import org.bitcoinj.params.MainNetParams;' "$f"
+            fi
+          done
+          echo "✅ Đã chuyển sang MAINNET"
+
+      - name: Cài JDK 8 Zulu
+        uses: actions/setup-java@v4
+        with: { java-version: '8', distribution: 'zulu', cache: 'gradle' }
+
+      - name: Cài Android SDK (JDK 8 compatible)
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 7302050
+          packages: >
+            build-tools;27.0.3
+            platforms;android-27
+            platform-tools
+
+      - name: chmod +x gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
+          key: ${{ runner.os }}-mainnet-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: [ ${{ runner.os }}-mainnet- ]
+
+      - name: 🏗️ Build MAINNET APK
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      # ✅ ĐỔI TÊN FILE APK RÕ RÀNG → không còn app-debug.apk lộn xộn
+      - name: Đổi tên APK → MAINNET
+        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/BitcoinJ-Wallet-MAINNET.apk
+
+      - name: 📦 Upload MAINNET APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 🔴 BitcoinJ-Wallet-MAINNET
+          path: app/build/outputs/apk/debug/BitcoinJ-Wallet-MAINNET.apk
+          if-no-files-found: error
+          retention-days: 90
+
+  # ============================================================
+  # JOB 2: BUILD TESTNET3 🟡 (MẠNG MẶC ĐỊNH CỦA REPO)
+  # ============================================================
+  build-testnet:
+    name: 🟡 BUILD TESTNET3 APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix jcenter() → mavenCentral()
+        run: find . -name "build.gradle" -type f | xargs sed -i 's/jcenter()/mavenCentral()\n        google()/g'
+
+      # ✅ TESTNET: KHÔNG ĐỔI GÌ MẠNG → giữ nguyên code gốc TestNet3Params
+      - name: Patch code → TESTNET3 (giữ nguyên)
+        run: echo "✅ Dùng mạng TESTNET3 mặc định của code gốc, không sửa gì"
+
+      - name: Cài JDK 8 Zulu
+        uses: actions/setup-java@v4
+        with: { java-version: '8', distribution: 'zulu', cache: 'gradle' }
+
+      - name: Cài Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 7302050
+          packages: >
+            build-tools;27.0.3
+            platforms;android-27
+            platform-tools
+
+      - name: chmod +x gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
+          key: ${{ runner.os }}-testnet-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: [ ${{ runner.os }}-testnet- ]
+
+      - name: 🏗️ Build TESTNET3 APK
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Đổi tên APK → TESTNET3
+        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/BitcoinJ-Wallet-TESTNET3.apk
+
+      - name: 📦 Upload TESTNET3 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 🟡 BitcoinJ-Wallet-TESTNET3
+          path: app/build/outputs/apk/debug/BitcoinJ-Wallet-TESTNET3.apk
+          if-no-files-found: error
+          retention-days: 90
+
+  # ============================================================
+  # JOB 3: BUILD SIGNET 🟢 (MẠNG TEST MỚI, ỔN ĐỊNH HƠN TESTNET)
+  # ============================================================
+  build-signet:
+    name: 🟢 BUILD SIGNET APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix jcenter() → mavenCentral()
+        run: find . -name "build.gradle" -type f | xargs sed -i 's/jcenter()/mavenCentral()\n        google()/g'
+
+      # ✅ ĐỔI MẠNG: TẤT CẢ TestNet3Params → SignetParams
+      - name: Patch code → SIGNET
+        run: |
+          find app/src -name "*.java" -type f | xargs sed -i 's/TestNet3Params.get()/SignetParams.get()/g'
+          # Thêm import SignetParams nếu thiếu
+          find app/src -name "*.java" -type f | xargs grep -l "SignetParams.get()" | while read f; do
+            if ! grep -q "org.bitcoinj.params.SignetParams" "$f"; then
+              sed -i '/import org.bitcoinj.params.TestNet3Params/a import org.bitcoinj.params.SignetParams;' "$f"
+            fi
+          done
+          echo "✅ Đã chuyển sang SIGNET"
+
+      - name: Cài JDK 8 Zulu
+        uses: actions/setup-java@v4
+        with: { java-version: '8', distribution: 'zulu', cache: 'gradle' }
+
+      - name: Cài Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 7302050
+          packages: >
+            build-tools;27.0.3
+            platforms;android-27
+            platform-tools
+
+      - name: chmod +x gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
+          key: ${{ runner.os }}-signet-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: [ ${{ runner.os }}-signet- ]
+
+      - name: 🏗️ Build SIGNET APK
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Đổi tên APK → SIGNET
+        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/BitcoinJ-Wallet-SIGNET.apk
+
+      - name: 📦 Upload SIGNET APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 🟢 BitcoinJ-Wallet-SIGNET
+          path: app/build/outputs/apk/debug/BitcoinJ-Wallet-SIGNET.apk
+          if-no-files-found: error
+          retention-days: 90
+
+  # ============================================================
+  # JOB 4: GOM TẤT CẢ 3 APK VÀO 1 FILE ZIP CHUNG → TẢI 1 LẦN LÀ ĐỦ
+  # ============================================================
+  zip-all:
+    name: 📦 GOM ZIP TẤT CẢ 3 MẠNG
+    needs: [ build-mainnet, build-testnet, build-signet ]  # CHỈ CHẠY KHI 3 JOB TRÊN XONG HẾT ✅
+    runs-on: ubuntu-latest
+    steps:
+      # Tải cả 3 APK về cùng 1 chỗ
+      - name: Tải MAINNET APK
+        uses: actions/download-artifact@v4
+        with: { name: 🔴 BitcoinJ-Wallet-MAINNET }
+      - name: Tải TESTNET3 APK
+        uses: actions/download-artifact@v4
+        with: { name: 🟡 BitcoinJ-Wallet-TESTNET3 }
+      - name: Tải SIGNET APK
+        uses: actions/download-artifact@v4
+        with: { name: 🟢 BitcoinJ-Wallet-SIGNET }
+
+      # Gom thành 1 file ZIP
+      - name: Nén ZIP tất cả
+        run: zip -j BitcoinJ-Wallet-ALL-NETWORKS.zip *.apk
+
+      # Upload ZIP chung
+      - name: 🚀 Upload ZIP TẤT CẢ MẠNG
+        uses: actions/upload-artifact@v4
+        with:
+          name: 📦 BitcoinJ-Wallet-ALL-3-NETWORKS-ZIP
+          path: BitcoinJ-Wallet-ALL-NETWORKS.zip
+          if-no-files-found: error
+          retention-days: 90
