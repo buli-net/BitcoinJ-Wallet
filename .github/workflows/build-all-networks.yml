@@ -1,3 +1,18 @@
+name: Build All Bitcoin Networks
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
   build-mainnet:
     name: Build MAINNET APK
     runs-on: ubuntu-latest
@@ -20,23 +35,22 @@
           EOF
           chmod +x gradlew
 
-      - name: CLEAN SDK + INSTALL ONLY ANDROID 27
+      - name: CLEAN SDK + INSTALL ANDROID 27
         run: |
           rm -rf $ANDROID_HOME/platforms/android-3* $ANDROID_HOME/platforms/android-2[89]
           rm -rf $ANDROID_HOME/system-images/*
           rm -rf $ANDROID_HOME/build-tools/3* $ANDROID_HOME/build-tools/2[89]*
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install \
             "platform-tools" "build-tools;27.0.3" "platforms;android-27" "tools" > /dev/null 2>&1 || true
-          echo "=== SDK OK ===" && ls $ANDROID_HOME/platforms/ && ls $ANDROID_HOME/build-tools/
 
-      - name: FIX Repo + AGP 2.3.0 + ZXing 3.0.1
+      - name: FIX Repo + AGP + ZXing
         run: |
           REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/jitpack.io' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
           find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
           find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
           find . -name "build.gradle" -type f | xargs sed -i 's/com.journeyapps:zxing-android-embedded:3.0.2/com.journeyapps:zxing-android-embedded:3.0.1/g'
 
-      - name: PATCH → MAINNET
+      - name: PATCH MAINNET
         run: |
           find app/src -name "*.java" -type f | xargs sed -i 's/TestNet3Params.get()/MainNetParams.get()/g'
           find app/src -name "*.java" -type f | xargs grep -l "MainNetParams.get()" | while read f; do
@@ -50,27 +64,18 @@
           key: mainnet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: [ mainnet-agp230-sdk27- ]
 
-      # ✅ SỐ 1: BỎ --offline, KHÔNG NUỐT LỖI NỮA
-      - name: 🔨 BUILD APK (ONLINE LẦN ĐẦU)
+      - name: BUILD APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tail -100
 
-      # ✅ SỐ 2: TÌM TẤT CẢ APK TỰ ĐỘNG (KO CỨNG ĐƯỜNG DẪN)
-      - name: 🔍 TÌM ĐƯỜNG DẪN APK THẬT
+      - name: TÌM ĐƯỜNG DẪN APK
         id: findapk
         run: |
-          echo "=== TẤT CẢ FILE APK ==="
-          find . -name "*.apk" -type f 2>/dev/null || true
           APK_PATH=$(find . -name "*debug*.apk" -type f 2>/dev/null | head -1)
-          if [ -z "$APK_PATH" ]; then
-            echo "❌ KHÔNG TÌM THẤY APK NÀO → BUILD ĐÃ FAIL Ở BƯỚC TRÊN"
-            exit 1
-          fi
-          echo "✅ TÌM THẤY: $APK_PATH"
+          if [ -z "$APK_PATH" ]; then echo "❌ KHÔNG TÌM THẤY APK"; exit 1; fi
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
-      - name: ✅ Rename & Upload MAINNET
+      - name: Rename & Upload
         run: mv "${{ steps.findapk.outputs.apk_path }}" BitcoinJ-Wallet-MAINNET.apk
-
       - uses: actions/upload-artifact@v4
         with:
           name: APK-MAINNET
@@ -106,12 +111,12 @@
           path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
           key: testnet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: [ testnet-agp230-sdk27- ]
-      - name: 🔨 BUILD TESTNET
+      - name: BUILD APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tail -100
       - id: findapk
         run: |
           APK_PATH=$(find . -name "*debug*.apk" -type f 2>/dev/null | head -1)
-          [ -z "$APK_PATH" ] && echo "❌ KO CÓ APK" && exit 1 || echo "✅ $APK_PATH"
+          [ -z "$APK_PATH" ] && exit 1
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
       - run: mv "${{ steps.findapk.outputs.apk_path }}" BitcoinJ-Wallet-TESTNET3.apk
       - uses: actions/upload-artifact@v4
@@ -150,13 +155,32 @@
           path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
           key: signet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: [ signet-agp230-sdk27- ]
-      - name: 🔨 BUILD SIGNET
+      - name: BUILD APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tail -100
       - id: findapk
         run: |
           APK_PATH=$(find . -name "*debug*.apk" -type f 2>/dev/null | head -1)
-          [ -z "$APK_PATH" ] && echo "❌ KO CÓ APK" && exit 1 || echo "✅ $APK_PATH"
+          [ -z "$APK_PATH" ] && exit 1
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
       - run: mv "${{ steps.findapk.outputs.apk_path }}" BitcoinJ-Wallet-SIGNET.apk
       - uses: actions/upload-artifact@v4
         with: { name: APK-SIGNET, path: BitcoinJ-Wallet-SIGNET.apk, if-no-files-found: error, retention-days: 90 }
+
+  zip-all:
+    name: Zip All 3 APKs
+    needs: [ build-mainnet, build-testnet, build-signet ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: APK-MAINNET }
+      - uses: actions/download-artifact@v4
+        with: { name: APK-TESTNET3 }
+      - uses: actions/download-artifact@v4
+        with: { name: APK-SIGNET }
+      - run: zip -j BitcoinJ-Wallet-ALL-NETWORKS.zip *.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZIP-ALL-3-APKS
+          path: BitcoinJ-Wallet-ALL-NETWORKS.zip
+          if-no-files-found: error
+          retention-days: 90
