@@ -60,9 +60,12 @@ jobs:
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
-          path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: mainnet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: [ mainnet-agp230-sdk27- ]
+          restore-keys: |
+            mainnet-agp230-sdk27-
 
       - name: BUILD APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tail -100
@@ -71,10 +74,14 @@ jobs:
         id: findapk
         run: |
           APK_PATH=$(find . -name "*debug*.apk" -type f 2>/dev/null | head -1)
-          if [ -z "$APK_PATH" ]; then echo "❌ KHÔNG TÌM THẤY APK"; exit 1; fi
+          if [ -z "$APK_PATH" ]; then
+            echo "❌ KHÔNG TÌM THẤY APK → BUILD ĐÃ LỖI Ở TRÊN"
+            exit 1
+          fi
+          echo "✅ TÌM THẤY APK: $APK_PATH"
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
-      - name: Rename & Upload
+      - name: Rename & Upload MAINNET
         run: mv "${{ steps.findapk.outputs.apk_path }}" BitcoinJ-Wallet-MAINNET.apk
       - uses: actions/upload-artifact@v4
         with:
@@ -89,7 +96,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { java-version: '8', distribution: 'zulu', cache: 'gradle' }
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          cache: 'gradle'
       - run: |
           cat > gradle.properties << 'EOF'
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -108,9 +118,12 @@ jobs:
           find . -name "build.gradle" -type f | xargs sed -i 's/com.journeyapps:zxing-android-embedded:3.0.2/com.journeyapps:zxing-android-embedded:3.0.1/g'
       - uses: actions/cache@v4
         with:
-          path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: testnet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: [ testnet-agp230-sdk27- ]
+          restore-keys: |
+            testnet-agp230-sdk27-
       - name: BUILD APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tail -100
       - id: findapk
@@ -120,7 +133,11 @@ jobs:
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
       - run: mv "${{ steps.findapk.outputs.apk_path }}" BitcoinJ-Wallet-TESTNET3.apk
       - uses: actions/upload-artifact@v4
-        with: { name: APK-TESTNET3, path: BitcoinJ-Wallet-TESTNET3.apk, if-no-files-found: error, retention-days: 90 }
+        with:
+          name: APK-TESTNET3
+          path: BitcoinJ-Wallet-TESTNET3.apk
+          if-no-files-found: error
+          retention-days: 90
 
   build-signet:
     name: Build SIGNET APK
@@ -128,7 +145,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { java-version: '8', distribution: 'zulu', cache: 'gradle' }
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          cache: 'gradle'
       - run: |
           cat > gradle.properties << 'EOF'
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -152,9 +172,12 @@ jobs:
           done
       - uses: actions/cache@v4
         with:
-          path: [ ~/.gradle/caches, ~/.gradle/wrapper ]
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: signet-agp230-sdk27-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: [ signet-agp230-sdk27- ]
+          restore-keys: |
+            signet-agp230-sdk27-
       - name: BUILD APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tail -100
       - id: findapk
@@ -164,7 +187,11 @@ jobs:
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
       - run: mv "${{ steps.findapk.outputs.apk_path }}" BitcoinJ-Wallet-SIGNET.apk
       - uses: actions/upload-artifact@v4
-        with: { name: APK-SIGNET, path: BitcoinJ-Wallet-SIGNET.apk, if-no-files-found: error, retention-days: 90 }
+        with:
+          name: APK-SIGNET
+          path: BitcoinJ-Wallet-SIGNET.apk
+          if-no-files-found: error
+          retention-days: 90
 
   zip-all:
     name: Zip All 3 APKs
@@ -172,11 +199,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: APK-MAINNET }
+        with:
+          name: APK-MAINNET
       - uses: actions/download-artifact@v4
-        with: { name: APK-TESTNET3 }
+        with:
+          name: APK-TESTNET3
       - uses: actions/download-artifact@v4
-        with: { name: APK-SIGNET }
+        with:
+          name: APK-SIGNET
       - run: zip -j BitcoinJ-Wallet-ALL-NETWORKS.zip *.apk
       - uses: actions/upload-artifact@v4
         with:
