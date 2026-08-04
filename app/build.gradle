@@ -1,12 +1,11 @@
 apply plugin: 'com.android.application'
-apply plugin: 'me.tatarka.retrolambda'
 
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.2"
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
-        minSdkVersion 15
+        minSdkVersion 16
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -18,6 +17,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    // Thêm để hỗ trợ Java 8, loại bỏ cảnh báo Jack
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -25,13 +25,27 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:design:26.0.2'
-    annotationProcessor "org.androidannotations:androidannotations:4.2.0"
-    compile "org.androidannotations:androidannotations-api:4.2.0"
-    compile 'org.bitcoinj:bitcoinj-core:0.14.4'
-    compile 'com.github.kenglxn.QRGen:android:2.2.0'
-    compile 'com.journeyapps:zxing-android-embedded:3.5.0@aar'
-    compile 'com.google.zxing:core:3.2.0'
-    compile 'org.slf4j:slf4j-api:1.7.12'
-    compile 'org.slf4j:slf4j-simple:1.7.12'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    // Thư viện Android Support - giữ nguyên phiên bản tương thích
+    implementation 'com.android.support:appcompat-v7:26.0.2'
+    implementation 'com.android.support:design:26.0.2'
+    implementation 'com.android.support:recyclerview-v7:26.0.2'
+    implementation 'com.android.support:support-v4:26.0.2'
+    implementation 'com.android.support:transition:26.0.2'
+    implementation 'com.android.support:multidex:1.0.1'
+
+    // ✅ Cập nhật AndroidAnnotations từ 4.2.0 lên 4.6.0 tương thích
+    implementation 'org.androidannotations:androidannotations-api:4.6.0'
+    annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
+
+    // Các thư viện khác
+    implementation 'com.google.zxing:core:3.2.0'
+    implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
+    implementation 'com.github.kenglxn.QRGen:android:2.2.0'
+    implementation 'org.bitcoinj:bitcoinj-core:0.14.4'
+    implementation 'com.squareup.okhttp:okhttp:2.7.2'
+    implementation 'com.squareup.okio:okio:1.6.0'
+    implementation 'org.slf4j:slf4j-api:1.7.20'
+    implementation 'org.slf4j:slf4j-simple:1.7.12'
 }
