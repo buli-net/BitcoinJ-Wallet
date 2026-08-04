@@ -1,19 +1,20 @@
 buildscript {
     repositories {
-        google()
+        // ❌ Xóa google() → thay bằng dòng dưới
+        maven { url 'https://maven.google.com' }
         jcenter()
         mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.3.3'
-        // ✅ Cập nhật classpath AndroidAnnotations tương thích
         classpath 'org.androidannotations:androidannotations:4.6.0'
     }
 }
 
 allprojects {
     repositories {
-        google()
+        // ❌ Xóa google() → thay bằng dòng dưới
+        maven { url 'https://maven.google.com' }
         jcenter()
         mavenCentral()
         maven { url "https://jitpack.io" }
