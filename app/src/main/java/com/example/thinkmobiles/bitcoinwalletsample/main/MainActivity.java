@@ -115,7 +115,6 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
         }
     }
 
-
     @Override
     public void setPresenter(MainActivityContract.MainActivityPresenter presenter) {
         this.presenter = presenter;
@@ -156,10 +155,9 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
     @UiThread
     public void displayMyAddress(String myAddress) {
         tvMyAddress_AM.setText(myAddress);
-        Bitmap bitmapMyQR = QRCode.from(myAddress).bitmap();   //base58 address
+        Bitmap bitmapMyQR = QRCode.from(myAddress).bitmap();
         ivMyQRAddress_AM.setImageBitmap(bitmapMyQR);
         if(srlContent_AM.isRefreshing()) srlContent_AM.setRefreshing(false);
-
     }
 
     @Override
@@ -167,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
         tvRecipientAddress_AM.setText(TextUtils.isEmpty(recipientAddress) ? strScanRecipientQRCode : recipientAddress);
         tvRecipientAddress_AM.setTextColor(TextUtils.isEmpty(recipientAddress) ? colorGreyDark : colorGreenDark);
     }
-
 
     @Override
     public void showToastMessage(String message) {
@@ -203,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
         builder.setPositiveButton("GOT IT", (dialog, which) -> dialog.dismiss());
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
-        TextView msgTxt = (TextView) alertDialog.findViewById(android.R.id.message);
+        TextView msgTxt = alertDialog.findViewById(android.R.id.message);
         msgTxt.setMovementMethod(LinkMovementMethod.getInstance());
     }
 
@@ -222,14 +219,10 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
         btnSend_AM.setOnClickListener(v -> presenter.send());
         etAmount_AM.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
             @Override
             public void afterTextChanged(Editable s) {
