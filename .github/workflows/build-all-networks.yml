@@ -17,8 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix jcenter to mavenCentral
-        run: find . -name "build.gradle" -type f | xargs sed -i 's/jcenter()/mavenCentral()\n        google()/g'
+      # ✅ SỬA CHÍNH Ở ĐÂY: Thay jcenter() = mavenCentral + GOOGLE URL ĐẦY ĐỦ (hỗ trợ Gradle 3.3)
+      - name: Fix jcenter dead repo (Gradle 3.3 compatible)
+        run: |
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/mavenCentral()\n        maven { url 'https:\/\/maven.google.com' }/g"
+          echo "Fixed jcenter -> mavenCentral + Google Maven OK"
 
       - name: Patch code to MAINNET
         run: |
@@ -55,9 +58,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: mainnet-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: mainnet-gradle33-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            mainnet-
+            mainnet-gradle33-
 
       - name: Build MAINNET APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
@@ -79,8 +82,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix jcenter to mavenCentral
-        run: find . -name "build.gradle" -type f | xargs sed -i 's/jcenter()/mavenCentral()\n        google()/g'
+      - name: Fix jcenter dead repo (Gradle 3.3 compatible)
+        run: |
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/mavenCentral()\n        maven { url 'https:\/\/maven.google.com' }/g"
+          echo "Fixed jcenter OK"
 
       - name: Keep TESTNET3 default
         run: echo "Use original TESTNET3 code"
@@ -110,9 +115,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: testnet-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: testnet-gradle33-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            testnet-
+            testnet-gradle33-
 
       - name: Build TESTNET3 APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
@@ -134,8 +139,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix jcenter to mavenCentral
-        run: find . -name "build.gradle" -type f | xargs sed -i 's/jcenter()/mavenCentral()\n        google()/g'
+      - name: Fix jcenter dead repo (Gradle 3.3 compatible)
+        run: |
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/mavenCentral()\n        maven { url 'https:\/\/maven.google.com' }/g"
+          echo "Fixed jcenter OK"
 
       - name: Patch code to SIGNET
         run: |
@@ -172,9 +179,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: signet-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: signet-gradle33-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            signet-
+            signet-gradle33-
 
       - name: Build SIGNET APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
