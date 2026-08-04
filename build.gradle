@@ -1,22 +1,22 @@
 buildscript {
     repositories {
-        maven { url "https://maven.google.com" }
-        maven { url "https://jitpack.io" }  // ✅ THÊM DÒNG NÀY
+        google()
+        jcenter()
         mavenCentral()
-        maven { url "https://repo1.maven.org/maven2" }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
-        classpath 'me.tatarka:gradle-retrolambda:3.6.0'
+        classpath 'com.android.tools.build:gradle:2.3.3'
+        // ✅ Cập nhật classpath AndroidAnnotations tương thích
+        classpath 'org.androidannotations:androidannotations:4.6.0'
     }
 }
 
 allprojects {
     repositories {
-        maven { url "https://maven.google.com" }
-        maven { url "https://jitpack.io" }  // ✅ ĐẢM BẢO CÓ DÒNG NÀY
+        google()
+        jcenter()
         mavenCentral()
-        maven { url "https://repo1.maven.org/maven2" }
+        maven { url "https://jitpack.io" }
     }
 }
 
