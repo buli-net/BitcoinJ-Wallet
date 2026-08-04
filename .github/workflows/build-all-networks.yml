@@ -1,4 +1,4 @@
-name: Build All Bitcoin Networks
+name: Build Bitcoin Wallet
 
 env:
   ANDROID_HOME: /usr/local/lib/android/sdk
@@ -12,11 +12,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-mainnet:
-    name: Build MAINNET APK
+  build:
+    name: Build APK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
 
       - name: Cài JDK 8 (bắt buộc cho dự án cũ)
         uses: actions/setup-java@v4
@@ -30,67 +31,14 @@ jobs:
           chmod +x gradlew
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;26.0.2" "platforms;android-26" > /dev/null 2>&1 || true
 
-      - name: Build MAINNET (chỉ đổi Constants.IS_PRODUCTION, không đụng code presenter)
-        run: |
-          sed -i 's/IS_PRODUCTION\s*=\s*false/IS_PRODUCTION = true/' app/src/main/java/com/example/thinkmobiles/bitcoinwalletsample/Constants.java
-          ./gradlew clean assembleDebug --stacktrace --no-daemon
+      - name: Build theo cấu hình trong code
+        run: ./gradlew clean assembleDebug --stacktrace --no-daemon
 
-      - name: Đổi tên & Lưu APK
-        run: |
-          mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet-MAINNET.apk
+      - name: Lưu APK
+        run: mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: APK-MAINNET
-          path: BitcoinJ-Wallet-MAINNET.apk
-          retention-days: 90
-
-  build-testnet:
-    name: Build TESTNET3 APK
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Cài JDK 8
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'zulu'
-          cache: 'gradle'
-
-      - name: Cấp quyền & Cài SDK
-        run: |
-          chmod +x gradlew
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;26.0.2" "platforms;android-26" > /dev/null 2>&1 || true
-
-      - name: Build TESTNET
-        run: |
-          sed -i 's/IS_PRODUCTION\s*=\s*true/IS_PRODUCTION = false/' app/src/main/java/com/example/thinkmobiles/bitcoinwalletsample/Constants.java
-          ./gradlew clean assembleDebug --stacktrace --no-daemon
-
-      - name: Đổi tên & Lưu APK
-        run: |
-          mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet-TESTNET3.apk
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: APK-TESTNET3
-          path: BitcoinJ-Wallet-TESTNET3.apk
-          retention-days: 90
-
-  zip-all:
-    name: Zip All APKs
-    needs: [ build-mainnet, build-testnet ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: APK-TESTNET3
-
-      - run: zip -j BitcoinJ-Wallet-ALL.zip *.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ZIP-ALL
-          path: BitcoinJ-Wallet-ALL.zip
+          name: BitcoinJ-Wallet-APK
+          path: BitcoinJ-Wallet.apk
           retention-days: 90
