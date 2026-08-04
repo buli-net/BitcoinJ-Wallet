@@ -17,11 +17,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ✅ SỬA CHÍNH Ở ĐÂY: Thay jcenter() = mavenCentral + GOOGLE URL ĐẦY ĐỦ (hỗ trợ Gradle 3.3)
-      - name: Fix jcenter dead repo (Gradle 3.3 compatible)
+      # ============================================================
+      # ✅ FIX CHÍNH Ở ĐÂY — GIẢI QUYẾT HẾT 2 LỖI TRƯỚC
+      # 1. Thay jcenter() = mavenCentral + GOOGLE MAVEN CŨ + JCENTER MIRROR CÒN SỐNG
+      # 2. Đổi AGP 2.3.1 -> 2.3.0 (bản này vẫn còn trên mirror)
+      # ============================================================
+      - name: FIX REPO + AGP VERSION (Gradle 3.3 compatible)
         run: |
-          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/mavenCentral()\n        maven { url 'https:\/\/maven.google.com' }/g"
-          echo "Fixed jcenter -> mavenCentral + Google Maven OK"
+          # 1. Thay jcenter() = đủ 3 repo còn sống cho thư viện cũ
+          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
+
+          # 2. Đổi AGP 2.3.1 -> 2.3.0 (bản 2.3.1 đã bị xóa khỏi mọi server)
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
+
+          echo "✅ Fixed repos + AGP 2.3.1 -> 2.3.0 OK"
+          cat build.gradle
 
       - name: Patch code to MAINNET
         run: |
@@ -58,9 +69,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: mainnet-gradle33-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: mainnet-gradle33-agp230-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            mainnet-gradle33-
+            mainnet-gradle33-agp230-
 
       - name: Build MAINNET APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
@@ -82,10 +93,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix jcenter dead repo (Gradle 3.3 compatible)
+      - name: FIX REPO + AGP VERSION
         run: |
-          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/mavenCentral()\n        maven { url 'https:\/\/maven.google.com' }/g"
-          echo "Fixed jcenter OK"
+          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
+          echo "✅ Fixed repos + AGP OK"
 
       - name: Keep TESTNET3 default
         run: echo "Use original TESTNET3 code"
@@ -115,9 +128,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: testnet-gradle33-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: testnet-gradle33-agp230-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            testnet-gradle33-
+            testnet-gradle33-agp230-
 
       - name: Build TESTNET3 APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
@@ -139,10 +152,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix jcenter dead repo (Gradle 3.3 compatible)
+      - name: FIX REPO + AGP VERSION
         run: |
-          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/mavenCentral()\n        maven { url 'https:\/\/maven.google.com' }/g"
-          echo "Fixed jcenter OK"
+          REPOS="mavenCentral()\n        maven { url 'https:\/\/dl.google.com\/dl\/android\/maven2\/' }\n        maven { url 'https:\/\/jcenter.bintray.com\/' }\n        maven { url 'https:\/\/plugins.gradle.org\/m2\/' }"
+          find . -name "build.gradle" -type f | xargs sed -i "s/jcenter()/$REPOS/g"
+          find . -name "build.gradle" -type f | xargs sed -i 's/com.android.tools.build:gradle:2.3.1/com.android.tools.build:gradle:2.3.0/g'
+          echo "✅ Fixed repos + AGP OK"
 
       - name: Patch code to SIGNET
         run: |
@@ -179,9 +194,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: signet-gradle33-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: signet-gradle33-agp230-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            signet-gradle33-
+            signet-gradle33-agp230-
 
       - name: Build SIGNET APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
@@ -202,24 +217,14 @@ jobs:
     needs: [ build-mainnet, build-testnet, build-signet ]
     runs-on: ubuntu-latest
     steps:
-      - name: Download MAINNET
-        uses: actions/download-artifact@v4
-        with:
-          name: APK-MAINNET
-      - name: Download TESTNET3
-        uses: actions/download-artifact@v4
-        with:
-          name: APK-TESTNET3
-      - name: Download SIGNET
-        uses: actions/download-artifact@v4
-        with:
-          name: APK-SIGNET
-
-      - name: Create ZIP all
-        run: zip -j BitcoinJ-Wallet-ALL-NETWORKS.zip *.apk
-
-      - name: Upload ZIP ALL
-        uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@v4
+        with: { name: APK-MAINNET }
+      - uses: actions/download-artifact@v4
+        with: { name: APK-TESTNET3 }
+      - uses: actions/download-artifact@v4
+        with: { name: APK-SIGNET }
+      - run: zip -j BitcoinJ-Wallet-ALL-NETWORKS.zip *.apk
+      - uses: actions/upload-artifact@v4
         with:
           name: ZIP-ALL-3-APKS
           path: BitcoinJ-Wallet-ALL-NETWORKS.zip
