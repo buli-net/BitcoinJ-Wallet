@@ -41,7 +41,7 @@ configurations {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
         exclude group: 'com.google.code.findbugs', module: 'annotations'
         exclude group: 'net.jcip', module: 'jcip-annotations'
-        // ✅ KHÓA PHIÊN BẢN ĐÚNG: Guava 25.1-android là phiên bản cuối cùng có AbstractIdleService
+        // ✅ KHÓA PHIÊN BẢN ĐÚNG TƯƠNG THÍCH BITCOINJ 0.17.1
         resolutionStrategy {
             force 'com.google.guava:guava:25.1-android'
             force 'org.slf4j:slf4j-api:1.7.30'
@@ -71,7 +71,7 @@ dependencies {
 
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // ✅ Giữ nguyên bitcoinj 0.17, loại bỏ xung đột
+    // ✅ BITCOINJ 0.17.1 + LOẠI BỎ XUNG ĐỘT PHỤ THUỘC
     implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
