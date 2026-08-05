@@ -22,11 +22,10 @@ jobs:
           java-version: '8'
           distribution: 'zulu'
 
-      # ✅ XÓA HẾT CACHE CŨ
       - name: Clear Gradle Cache
         run: rm -rf ~/.gradle/caches
 
-      # ✅ QUAN TRỌNG NHẤT: KHÔNG GHI cmdline-tools-version → TỰ DÙNG BẢN CŨ TƯƠNG THÍCH
+      # ✅ CHỈ CÓ DÒNG NÀY — KHÔNG CÓ cmdline-tools-version NÀO CẢ
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -41,7 +40,7 @@ jobs:
           APK=$(find . -path "*/build/outputs/apk/debug/*.apk" -type f | head -1)
           mv "$APK" BitcoinJ-Wallet-MAINNET.apk
 
-      - name: Tải APK về máy
+      - name: Tải APK
         uses: actions/upload-artifact@v4
         with:
           name: BitcoinJ-Wallet-APK
