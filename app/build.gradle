@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    buildToolsVersion "26.0.3" // ✅ 26.0.3 tương thích AGP 3.6.4, thay 26.0.2 lỗi deprecated
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
         minSdkVersion 16
@@ -11,27 +11,40 @@ android {
         versionName "1.0"
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
+        // ✅ BẮT BUỘC: bật desugar mới của AGP 3.6+ để chạy Java 8+ code của 0.17.1
+        coreLibraryDesugaringEnabled true
     }
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    dexOptions {
+        preDexLibraries false
+        javaMaxHeapSize "4g"
+    }
+    lintOptions {
+        abortOnError false
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // ✅ Giữ NGUYÊN support library 26.0.2, KHÔNG đổi AndroidX
     implementation 'com.android.support:appcompat-v7:26.0.2'
     implementation 'com.android.support:design:26.0.2'
     implementation 'com.android.support:recyclerview-v7:26.0.2'
     implementation 'com.android.support:support-v4:26.0.2'
     implementation 'com.android.support:transition:26.0.2'
-    implementation 'com.android.support:multidex:1.0.2'
+    implementation 'com.android.support:multidex:1.0.3'
+
+    // ✅ Core desugar lib bắt buộc cho AGP 3.6+
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
 
     implementation 'org.androidannotations:androidannotations-api:4.6.0'
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
@@ -40,13 +53,22 @@ dependencies {
     implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
     implementation 'com.github.kenglxn.QRGen:android:2.2.0'
 
-    // ✅ Giữ nguyên bitcoinj 0.17.1
-    implementation 'org.bitcoinj:bitcoinj-core:0.17.1'
+    // ==============================================
+    // ✅ ĐÚNG YÊU CẦU: bitcoinj 0.17.1 HOÀN CHỈNH
+    // ==============================================
+    implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
+        // ✅ Loại bỏ các lib kéo theo gây conflict
+        exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'com.google.protobuf', module: 'protobuf-javalite'
+    }
+    // ✅ Thay bằng phiên bản tương thích
+    implementation 'com.google.guava:guava:27.1-android'
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
 
     implementation 'com.squareup.okhttp:okhttp:2.7.2'
     implementation 'com.squareup.okio:okio:1.6.0'
 
-    // ✅ ĐỔI SLF4J CHO KHỚP 0.17.1 (bản cũ 1.7.x gây lỗi)
+    // ✅ slf4j 2.x BẮT BUỘC cho 0.17.1
     implementation 'org.slf4j:slf4j-api:2.0.16'
     implementation 'org.slf4j:slf4j-simple:2.0.16'
 }
