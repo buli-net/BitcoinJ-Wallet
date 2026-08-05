@@ -6,13 +6,13 @@ android {
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
-        minSdkVersion 15
+        minSdkVersion 24  // ✅ Tăng lên 24 để hỗ trợ đầy đủ tính năng Java 8
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
 
-        // ✅ SỬA LỖI ICON VECTOR — KHÔNG CẦN SỬA TỪNG FILE ICON
+        // ✅ Khắc phục lỗi icon vector
         vectorDrawables.useSupportLibrary = true
 
         javaCompileOptions {
@@ -37,12 +37,18 @@ android {
     }
 }
 
-// Loại bỏ lớp trùng lặp gây lỗi
+// Loại bỏ lớp trùng lặp
 configurations {
     all {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
         exclude group: 'com.google.code.findbugs', module: 'annotations'
         exclude group: 'net.jcip', module: 'jcip-annotations'
+        // ✅ Khóa phiên bản thư viện tương thích với bitcoinj 0.17
+        resolutionStrategy {
+            force 'com.google.guava:guava:27.0.1-android'
+            force 'org.slf4j:slf4j-api:1.7.30'
+            force 'com.google.protobuf:protobuf-java:3.11.4'
+        }
     }
 }
 
@@ -55,23 +61,23 @@ dependencies {
 
     implementation 'me.tatarka:gradle-retrolambda:3.7.1'
 
-    // Android Annotations — đúng cú pháp Gradle mới
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
     implementation 'org.androidannotations:androidannotations-api:4.6.0'
 
-    // Quét mã QR
     implementation('com.journeyapps:zxing-android-embedded:3.5.0') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
     }
     implementation 'com.google.zxing:core:3.4.0'
 
-    // Tạo mã QR
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // BitcoinJ 0.17 — giữ nguyên phiên bản gốc
-    implementation('org.bitcoinj:bitcoinj-core:0.17') {
+    // ✅ Giữ nguyên bitcoinj 0.17, loại bỏ xung đột
+    implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
+        exclude group: 'com.google.guava'
+        exclude group: 'org.slf4j'
+        exclude group: 'com.google.protobuf'
     }
 }
