@@ -12,7 +12,7 @@ android {
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
 
-        // ✅ THÊM BLOCK NÀY: chỉ đường dẫn manifest cho AndroidAnnotations
+        // ✅ CHỈ GIỮ LẠI BLOCK NÀY: nói cho AA tìm đúng manifest
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments = [
@@ -40,13 +40,10 @@ android {
         abortOnError false
     }
 
-    // ✅ THÊM BLOCK NÀY: đảm bảo manifest merge xong MỚI compile code
-    applicationVariants.all { variant ->
-        variant.javaCompileProvider.get().dependsOn variant.processResourcesProvider.get()
-    }
+    // ✅ ĐÃ XÓA HẾT BLOCK applicationVariants.all GÂY LỖI
 }
 
-// ✅ TẤT CẢ dependencies GIỮ NGUYÊN 100% NHƯ BẢN VỪA SỬA
+// ✅ TẤT CẢ dependencies GIỮ NGUYÊN 100%
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:26.0.2'
