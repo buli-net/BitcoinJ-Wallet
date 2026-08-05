@@ -7,12 +7,18 @@ android {
 
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
-        // ==== SỬA QUAN TRỌNG: bitcoinj yêu cầu tối thiểu API 24 ====
         minSdkVersion 24
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
+
+        // ==== BẬT XỬ LÝ ANNOTATION CỦA ANDROIDANNOTATIONS ====
+        javaCompileOptions {
+            annotationProcessorOptions {
+                includeCompileClasspath true
+            }
+        }
     }
 
     buildTypes {
@@ -29,13 +35,28 @@ android {
 }
 
 dependencies {
-    // Giữ nguyên toàn bộ thư viện bạn có, chỉ sửa minSdk thôi
+    // Thư viện Android cơ bản
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:25.4.0'
     implementation 'com.android.support:design:25.4.0'
     implementation 'com.android.support:support-v4:25.4.0'
     implementation 'com.android.support:recyclerview-v7:25.4.0'
-    implementation 'me.tatarka:gradle-retrolambda:3.6.0'
-    // Giữ nguyên phiên bản bitcoinj bạn đang dùng
+
+    // Retrolambda
+    implementation 'me.tatarka:gradle-retrolambda:3.7.0'
+
+    // ==== THƯ VIỆN ĐANG THIẾU – BẮT BUỘC PHẢI CÓ ====
+    // AndroidAnnotations
+    implementation 'org.androidannotations:androidannotations:4.6.0'
+    annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
+
+    // Quét mã QR ZXing
+    implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
+    implementation 'com.google.zxing:core:3.4.0'
+
+    // Tạo mã QR
+    implementation 'net.glxn.qrgen:android:2.0'
+
+    // Bitcoinj
     implementation 'org.bitcoinj:bitcoinj-core:0.17'
 }
