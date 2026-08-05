@@ -1,21 +1,20 @@
 buildscript {
     repositories {
-        // ✅ Thêm mavenCentral trước, jcenter chỉ để dự phòng
-        mavenCentral()
-        jcenter()
         google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
-        classpath 'me.tatarka:gradle-retrolambda:3.6.0'
+        // ✅ Cặp tương thích: Plugin 3.6.4 + Gradle 5.6.4 → HOÀN TOÀN TƯƠNG THÍCH
+        classpath 'com.android.tools.build:gradle:3.6.4'
+        classpath 'me.tatarka:gradle-retrolambda:3.7.1'
     }
 }
 
 allprojects {
     repositories {
-        mavenCentral()
-        jcenter()
         google()
+        mavenCentral()
         maven { url "https://jitpack.io" }
     }
 }
