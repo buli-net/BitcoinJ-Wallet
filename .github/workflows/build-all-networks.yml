@@ -16,7 +16,7 @@ on:
 jobs:
   build:
     name: Build APK
-    runs-on: ubuntu-20.04  # ✅ SỬA: latest → 20.04 (ổn định SDK cũ, không thiếu gói)
+    runs-on: ubuntu-20.04  # ✅ SỬA: latest → 20.04 (ổn định SDK cũ)
     timeout-minutes: 12     # ✅ THÊM: tự dừng nếu treo quá 12 phút
     steps:
       - name: Lấy mã nguồn
@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '11'   # ✅ SỬA
-          distribution: 'temurin'  # ✅ SỬA: zulu → temurin (ổn hơn trên Actions)
+          distribution: 'zulu'  # ✅ GIỮ NGUYÊN ZULU theo yêu cầu
           cache: 'gradle'
 
       - name: Cấp quyền & Cài SDK đúng phiên bản
@@ -37,7 +37,7 @@ jobs:
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;26.0.3" "platforms;android-26" > /dev/null 2>&1 || true
 
       - name: Build theo cấu hình trong code
-        # ✅ THÊM: --max-workers=2 chống treo do hết RAM trên runner
+        # ✅ THÊM: --max-workers=2 chống treo do hết RAM
         run: ./gradlew clean assembleDebug --stacktrace --no-daemon --max-workers=2
 
       - name: Lưu APK
