@@ -1,19 +1,21 @@
 buildscript {
     repositories {
-        maven { url 'https://dl.google.com/dl/android/maven2/' }
+        google()
         mavenCentral()
+        jcenter()
     }
     dependencies {
-        // ✅ Nâng lên phiên bản có trên kho, tương thích dự án cũ
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        // ✅ AGP 3.6.4 = bản cao nhất VẪN HỖ TRỢ support library cũ, desugar được bytecode 0.17.1
+        classpath 'com.android.tools.build:gradle:3.6.4'
         classpath 'org.androidannotations:androidannotations:4.6.0'
     }
 }
 
 allprojects {
     repositories {
-        maven { url 'https://dl.google.com/dl/android/maven2/' }
+        google()
         mavenCentral()
+        jcenter()
         maven { url "https://jitpack.io" }
     }
 }
