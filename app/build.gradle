@@ -12,6 +12,9 @@ android {
         versionName "1.0"
         multiDexEnabled true
 
+        // ✅ SỬA LỖI ICON VECTOR — KHÔNG CẦN SỬA TỪNG FILE ICON
+        vectorDrawables.useSupportLibrary = true
+
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments = [
@@ -34,7 +37,7 @@ android {
     }
 }
 
-// ✅ Loại bỏ lớp trùng toàn cục
+// Loại bỏ lớp trùng lặp gây lỗi
 configurations {
     all {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
@@ -52,18 +55,21 @@ dependencies {
 
     implementation 'me.tatarka:gradle-retrolambda:3.7.1'
 
-    // ✅ Đúng cú pháp cho Gradle mới
+    // Android Annotations — đúng cú pháp Gradle mới
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
     implementation 'org.androidannotations:androidannotations-api:4.6.0'
 
+    // Quét mã QR
     implementation('com.journeyapps:zxing-android-embedded:3.5.0') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
     }
     implementation 'com.google.zxing:core:3.4.0'
 
+    // Tạo mã QR
     implementation 'net.glxn.qrgen:android:2.0'
 
+    // BitcoinJ 0.17 — giữ nguyên phiên bản gốc
     implementation('org.bitcoinj:bitcoinj-core:0.17') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
