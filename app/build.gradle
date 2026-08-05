@@ -31,12 +31,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+}
 
-    // ==== LOẠI BỎ TOÀN BỘ LỚP TRÙNG LẶP ====
-    packagingOptions {
-        exclude 'META-INF/jsr305_annotations/**'
-        exclude 'META-INF/jcip_annotations/**'
-        exclude 'META-INF/annotations/**'
+// ==== LOẠI BỎ TOÀN BỘ THƯ VIỆN TRÙNG Ở CẤP CAO NHẤT ====
+configurations {
+    all {
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
+        exclude group: 'net.jcip', module: 'jcip-annotations'
     }
 }
 
@@ -54,15 +56,18 @@ dependencies {
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
 
     // Quét QR
-    implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
+    implementation ('com.journeyapps:zxing-android-embedded:3.5.0') {
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'net.jcip'
+    }
     implementation 'com.google.zxing:core:3.4.0'
 
     // Tạo QR
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // Bitcoinj + LOẠI BỎ THƯ VIỆN TRÙNG
+    // Bitcoinj
     implementation ('org.bitcoinj:bitcoinj-core:0.17') {
-        exclude group: 'com.google.code.findbugs', module: 'jsr305'
-        exclude group: 'net.jcip', module: 'jcip-annotations'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'net.jcip'
     }
 }
