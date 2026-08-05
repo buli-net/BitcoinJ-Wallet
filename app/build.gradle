@@ -13,7 +13,6 @@ android {
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
 
-        // ✅ ĐÃ FIX GString → String HOÀN TOÀN
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments = [
@@ -31,13 +30,11 @@ android {
         }
     }
 
-    // ✅ Bắt buộc Java 8 cho bitcoinj 0.17.1
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    // ✅ TĂNG DUNG LƯỢNG + TẮT TỐI ƯU TRƯỚC → KHÔNG BỊ NPE D8
     dexOptions {
         preDexLibraries false
         javaMaxHeapSize "6g"
@@ -52,7 +49,6 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    // ✅ GIỮ NGUYÊN SUPPORT LIBRARY GỐC
     implementation 'com.android.support:appcompat-v7:26.0.2'
     implementation 'com.android.support:design:26.0.2'
     implementation 'com.android.support:recyclerview-v7:26.0.2'
@@ -60,18 +56,13 @@ dependencies {
     implementation 'com.android.support:transition:26.0.2'
     implementation 'com.android.support:multidex:1.0.3'
 
-    // ✅ AndroidAnnotations
     implementation 'org.androidannotations:androidannotations-api:4.6.0'
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
 
-    // ✅ QR Code
     implementation 'com.google.zxing:core:3.2.0'
     implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
     implementation 'com.github.kenglxn.QRGen:android:2.2.0'
 
-    // ==============================================
-    // ✅ BITCOINJ 0.17.1 - ĐÃ LOẠI TRỪ TRÙNG LẶP
-    // ==============================================
     implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'com.google.protobuf', module: 'protobuf-javalite'
@@ -79,11 +70,10 @@ dependencies {
     implementation 'com.google.guava:guava:27.1-android'
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
 
-    // ✅ Mạng
     implementation 'com.squareup.okhttp:okhttp:2.7.2'
     implementation 'com.squareup.okio:okio:1.6.0'
 
-    // ✅ Log cho bitcoinj
+    // ✅ SLF4J 1.7.36 - HOÀN TOÀN TƯƠNG THÍCH JAVA 8
     implementation 'org.slf4j:slf4j-api:1.7.36'
     implementation 'org.slf4j:slf4j-simple:1.7.36'
 }
