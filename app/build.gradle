@@ -3,19 +3,23 @@ apply plugin: 'me.tatarka.retrolambda'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
-
+    // ✅ Đổi sang phiên bản nguyên số, tương thích hoàn toàn
+    buildToolsVersion "25.0.3"
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
-        minSdkVersion 24
+        minSdkVersion 15
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
 
+        // ✅ Cấu hình đúng AndroidAnnotations cho Gradle 2.3
         javaCompileOptions {
             annotationProcessorOptions {
-                includeCompileClasspath true
+                arguments = [
+                    androidManifestFile: "$projectDir/src/main/AndroidManifest.xml".toString(),
+                    resourcePackageName: "com.example.thinkmobiles.bitcoinwalletsample"
+                ]
             }
         }
     }
@@ -33,7 +37,7 @@ android {
     }
 }
 
-// ==== LOẠI BỎ TOÀN BỘ THƯ VIỆN TRÙNG Ở CẤP CAO NHẤT ====
+// ✅ Loại bỏ lớp trùng toàn cục
 configurations {
     all {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
@@ -49,24 +53,21 @@ dependencies {
     implementation 'com.android.support:support-v4:25.4.0'
     implementation 'com.android.support:recyclerview-v7:25.4.0'
 
-    implementation 'me.tatarka:gradle-retrolambda:3.7.0'
+    implementation 'me.tatarka:gradle-retrolambda:3.6.0'
 
-    // AndroidAnnotations
-    implementation 'org.androidannotations:androidannotations:4.6.0'
+    // ✅ AndroidAnnotations chia đúng loại dependency
+    provided 'org.androidannotations:androidannotations:4.6.0'
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
 
-    // Quét QR
-    implementation ('com.journeyapps:zxing-android-embedded:3.5.0') {
+    implementation('com.journeyapps:zxing-android-embedded:3.5.0') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
     }
     implementation 'com.google.zxing:core:3.4.0'
 
-    // Tạo QR
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // Bitcoinj
-    implementation ('org.bitcoinj:bitcoinj-core:0.17') {
+    implementation('org.bitcoinj:bitcoinj-core:0.17') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
     }
