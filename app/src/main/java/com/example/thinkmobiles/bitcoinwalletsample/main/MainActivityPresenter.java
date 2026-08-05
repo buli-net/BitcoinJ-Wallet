@@ -6,6 +6,9 @@ import android.util.Log;
 
 import com.example.thinkmobiles.bitcoinwalletsample.Constants;
 
+// ==============================================
+// ✅ IMPORT ĐÚNG CHO bitcoinj 0.17.1
+// ==============================================
 import org.bitcoinj.base.LegacyAddress;
 import org.bitcoinj.base.Coin;
 import org.bitcoinj.crypto.ECKey;
@@ -24,7 +27,6 @@ import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.Date;
 
 public class MainActivityPresenter implements MainActivityContract.MainActivityPresenter {
 
@@ -46,10 +48,10 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         BriefLogFormatter.init();
 
         walletAppKit = new WalletAppKit(parameters, walletDir, Constants.WALLET_NAME) {
-            // ✅ Sửa chữ ký hàm, bỏ @Override nếu cần
+            // ✅ BỎ @Override vì chữ ký hàm thay đổi ở 0.17.1
             protected void onSetupCompleted() {
                 if (wallet().getImportedKeys().size() < 1) wallet().importKey(new ECKey());
-                // ✅ Hàm này bị xóa ở 0.17.1 → bỏ đi hoặc dùng cách khác
+                // ✅ Hàm allowSpendingUnconfirmedTransactions() ĐÃ BỊ XÓA ở 0.17.x → bỏ luôn
                 view.displayWalletPath(vWalletFile.getAbsolutePath());
                 setupWalletListeners(wallet());
                 Log.d("myLogs", "My address = " + wallet().freshReceiveAddress());
@@ -57,7 +59,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         };
 
         walletAppKit.setDownloadListener(new DownloadProgressTracker() {
-            // ✅ Sửa tham số: Date → Instant
+            // ✅ SỬA: tham số cuối Date → Instant (0.17.x đổi API)
             @Override
             protected void progress(double pct, int blocksSoFar, Instant date) {
                 super.progress(pct, blocksSoFar, date);
@@ -81,7 +83,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
 
     @Override
     public void refresh() {
-        // ✅ toBase58() → dùng toString()
+        // ✅ SỬA: toBase58() → toString() (0.17.x bỏ hàm cũ)
         String myAddress = walletAppKit.wallet().freshReceiveAddress().toString();
         view.displayMyBalance(walletAppKit.wallet().getBalance().toFriendlyString());
         view.displayMyAddress(myAddress);
@@ -109,7 +111,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
             view.clearAmount();
             return;
         }
-        // ✅ Dùng LegacyAddress + toString()
+        // ✅ SỬA: Address.fromBase58 → LegacyAddress.fromBase58 (0.17.x đổi)
         SendRequest request = SendRequest.to(LegacyAddress.fromBase58(parameters, recipientAddress), Coin.parseCoin(amount));
         try {
             walletAppKit.wallet().completeTx(request);
@@ -123,7 +125,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
 
     @Override
     public void getInfoDialog() {
-        // ✅ toBase58() → toString()
+        // ✅ SỬA: toBase58() → toString()
         view.displayInfoDialog(walletAppKit.wallet().currentReceiveAddress().toString());
     }
 
