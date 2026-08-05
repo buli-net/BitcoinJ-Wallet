@@ -3,7 +3,7 @@ name: Build Bitcoin Wallet
 env:
   ANDROID_HOME: /usr/local/lib/android/sdk
   ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-  # ✅ THÊM: chống treo do thiếu RAM / daemon
+  # ✅ THÊM: chống treo khi build
   GRADLE_OPTS: "-Xmx4g -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
 
 on:
@@ -16,8 +16,7 @@ on:
 jobs:
   build:
     name: Build APK
-    runs-on: ubuntu-20.04  # ✅ SỬA: latest → 20.04 (ổn định SDK cũ)
-    timeout-minutes: 12     # ✅ THÊM: tự dừng nếu treo quá 12 phút
+    runs-on: ubuntu-latest  # ✅ QUAY LẠI NHƯ BẢN GỐC, KHÔNG ĐỔI OS NỮA
     steps:
       - name: Lấy mã nguồn
         uses: actions/checkout@v4
@@ -26,7 +25,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '11'   # ✅ SỬA
-          distribution: 'zulu'  # ✅ GIỮ NGUYÊN ZULU theo yêu cầu
+          distribution: 'zulu'  # ✅ GIỮ NGUYÊN ZULU
           cache: 'gradle'
 
       - name: Cấp quyền & Cài SDK đúng phiên bản
@@ -37,7 +36,7 @@ jobs:
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;26.0.3" "platforms;android-26" > /dev/null 2>&1 || true
 
       - name: Build theo cấu hình trong code
-        # ✅ THÊM: --max-workers=2 chống treo do hết RAM
+        # ✅ THÊM: --max-workers=2 chống hết RAM
         run: ./gradlew clean assembleDebug --stacktrace --no-daemon --max-workers=2
 
       - name: Lưu APK
