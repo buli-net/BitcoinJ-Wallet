@@ -7,17 +7,12 @@ import android.util.Log;
 
 import com.example.thinkmobiles.bitcoinwalletsample.Constants;
 
-// ============================================================
-// ✅ API CHANGES FOR bitcoinj 0.17.1 (only these lines changed)
-// ============================================================
-import org.bitcoinj.base.LegacyAddress; // was: org.bitcoinj.core.Address
+import org.bitcoinj.base.LegacyAddress;
 import org.bitcoinj.base.Coin;
 import org.bitcoinj.crypto.ECKey;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-// DownloadProgressTracker moved to new package + uses Instant instead of Date
 import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.params.MainNetParams;
@@ -28,9 +23,7 @@ import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
-import java.time.Instant; // was: java.util.Date (0.17.1 changed API)
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.time.Instant;
 
 /**
  * Created by Lynx on 4/11/2017.
@@ -39,21 +32,17 @@ import java.util.concurrent.Executors;
 public class MainActivityPresenter implements MainActivityContract.MainActivityPresenter {
 
     private MainActivityContract.MainActivityView view;
-    private File walletDir; //Context.getCacheDir();
-
+    private File walletDir;
     private NetworkParameters parameters;
     private WalletAppKit walletAppKit;
 
-    // ✅ Added for 0.17.1 + Android 16 safety
-    private final File walletFile; // vWalletFile was removed from WalletAppKit
-    private final ExecutorService btcThread = Executors.newSingleThreadExecutor();
+    private final File walletFile;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private volatile boolean walletReady = false;
 
     public MainActivityPresenter(MainActivityContract.MainActivityView view, File walletDir) {
         this.view = view;
         this.walletDir = walletDir;
-        // ✅ Exact path WalletAppKit 0.17.1 always creates internally
         this.walletFile = new File(walletDir, Constants.WALLET_NAME + ".wallet");
         view.setPresenter(this);
     }
@@ -64,28 +53,27 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         parameters = Constants.IS_PRODUCTION ? MainNetParams.get() : TestNet3Params.get();
         BriefLogFormatter.init();
 
-        // ✅ FIX ANDROID 16: ALL bitcoinj init runs on background thread
-        btcThread.execute(() -> {
+        // ✅ TOÀN BỘ KHỞI TẠO CHẠY TRÊN LUỒNG RIÊNG → KHÔNG VĂNG ANDROID 16
+        new Thread(() -> {
             walletAppKit = new WalletAppKit(parameters, walletDir, Constants.WALLET_NAME) {
                 @Override
                 protected void onSetupCompleted() {
-                    if (wallet().getImportedKeys().size() < 1) wallet().importKey(new ECKey());
-                    // ✅ REMOVED: allowSpendingUnconfirmedTransactions() was DELETED in 0.17.x
-                    // ✅ FIXED: vWalletFile no longer exists → use prebuilt path
+                    if (wallet().getImportedKeys().size() < 1)
+                        wallet().importKey(new ECKey());
+
                     runOnUi(() -> view.displayWalletPath(walletFile.getAbsolutePath()));
                     setupWalletListeners(wallet());
+                    walletReady = true;
 
                     Log.d("myLogs", "My address = " + wallet().freshReceiveAddress());
-                    walletReady = true;
                     runOnUi(() -> refresh());
                 }
             };
+
             walletAppKit.setDownloadListener(new DownloadProgressTracker() {
-                // ✅ FIXED 0.17.1 API: Date → Instant
                 @Override
                 protected void progress(double pct, int blocksSoFar, Instant date) {
                     super.progress(pct, blocksSoFar, date);
-                    // ✅ FIXED: pct is 0.0 ~ 1.0 → * 100 to get real %
                     int percentage = (int) Math.round(pct * 100);
                     runOnUi(() -> {
                         view.displayPercentage(percentage);
@@ -102,35 +90,35 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
                     });
                 }
             });
+
             walletAppKit.setBlockingStartup(false);
             walletAppKit.startAsync().awaitRunning();
-        });
+        }).start();
     }
 
     @Override
     public void unsubscribe() {
         walletReady = false;
-        btcThread.execute(() -> {
+        new Thread(() -> {
             try {
-                if (walletAppKit != null) walletAppKit.stopAsync().awaitTerminated();
+                if (walletAppKit != null)
+                    walletAppKit.stopAsync().awaitTerminated();
             } catch (Exception ignored) {}
             walletAppKit = null;
-            if (!btcThread.isShutdown()) btcThread.shutdownNow();
-        });
+        }).start();
     }
 
     @Override
     public void refresh() {
-        if (!checkReady()) return;
-        btcThread.execute(() -> {
+        if (!walletReady || walletAppKit == null) return;
+        new Thread(() -> {
             Wallet w = walletAppKit.wallet();
-            // ✅ FIXED 0.17.1: .toBase58() removed → use .toString()
             String myAddress = w.freshReceiveAddress().toString();
             runOnUi(() -> {
                 view.displayMyBalance(w.getBalance().toFriendlyString());
                 view.displayMyAddress(myAddress);
             });
-        });
+        }).start();
     }
 
     @Override
@@ -141,7 +129,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
 
     @Override
     public void send() {
-        if (!checkReady()) return;
+        if (!walletReady || walletAppKit == null) return;
 
         final String recipientAddress = view.getRecipient();
         final String amount = view.getAmount();
@@ -155,45 +143,45 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
             return;
         }
 
-        // ✅ ANDROID 16: send also runs on background thread
-        btcThread.execute(() -> {
+        new Thread(() -> {
             Wallet w = walletAppKit.wallet();
-            Coin coin = Coin.parseCoin(amount);
+            Coin coinAmount = Coin.parseCoin(amount);
 
-            if(w.getBalance().isLessThan(coin)) {
-                runOnUi(() -> {
-                    view.showToastMessage("You got not enough coins");
-                    view.clearAmount();
-                });
+            if(w.getBalance().isLessThan(coinAmount)) {
+                runOnUi(() -> view.showToastMessage("You got not enough coins"));
                 return;
             }
-            // ✅ FIXED 0.17.1: Address.fromBase58 → LegacyAddress.fromBase58
+
             SendRequest request = SendRequest.to(
-                    LegacyAddress.fromBase58(parameters, recipientAddress), coin
+                    LegacyAddress.fromBase58(parameters, recipientAddress),
+                    coinAmount
             );
+
             try {
                 w.completeTx(request);
                 w.commitTx(request.tx);
                 walletAppKit.peerGroup().broadcastTransaction(request.tx).broadcast();
+                runOnUi(() -> {
+                    view.clearAmount();
+                    view.displayRecipientAddress(null);
+                });
             } catch (InsufficientMoneyException e) {
                 e.printStackTrace();
                 runOnUi(() -> view.showToastMessage(e.getMessage()));
             }
-        });
+        }).start();
     }
 
     @Override
     public void getInfoDialog() {
-        if (!checkReady()) return;
-        btcThread.execute(() -> {
-            // ✅ FIXED 0.17.1: .toBase58() → .toString()
+        if (!walletReady || walletAppKit == null) return;
+        new Thread(() -> {
             String addr = walletAppKit.wallet().currentReceiveAddress().toString();
             runOnUi(() -> view.displayInfoDialog(addr));
-        });
+        }).start();
     }
 
     private void setBtcSDKThread() {
-        // ✅ Keep original pattern, just ensure main looper
         Threading.USER_THREAD = mainHandler::post;
     }
 
@@ -205,6 +193,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
                     view.showToastMessage("Receive " + newBalance.minus(prevBalance).toFriendlyString());
             });
         });
+
         wallet.addCoinsSentEventListener((wallet12, tx, prevBalance, newBalance) -> {
             runOnUi(() -> {
                 view.displayMyBalance(wallet.getBalance().toFriendlyString());
@@ -213,17 +202,6 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
                 view.showToastMessage("Sent " + prevBalance.minus(newBalance).minus(tx.getFee()).toFriendlyString());
             });
         });
-    }
-
-    // ============================================================
-    // Small helpers — original logic untouched
-    // ============================================================
-    private boolean checkReady() {
-        if (!walletReady || walletAppKit == null || !walletAppKit.isRunning()) {
-            view.showToastMessage("Wallet is starting, please wait");
-            return false;
-        }
-        return true;
     }
 
     private void runOnUi(Runnable r) {
