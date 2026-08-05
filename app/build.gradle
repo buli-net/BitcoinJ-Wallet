@@ -6,13 +6,12 @@ android {
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
-        minSdkVersion 24  // ✅ Tăng lên 24 để hỗ trợ đầy đủ tính năng Java 8
+        minSdkVersion 24
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
 
-        // ✅ Khắc phục lỗi icon vector
         vectorDrawables.useSupportLibrary = true
 
         javaCompileOptions {
@@ -37,15 +36,14 @@ android {
     }
 }
 
-// Loại bỏ lớp trùng lặp
 configurations {
     all {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
         exclude group: 'com.google.code.findbugs', module: 'annotations'
         exclude group: 'net.jcip', module: 'jcip-annotations'
-        // ✅ Khóa phiên bản thư viện tương thích với bitcoinj 0.17
+        // ✅ KHÓA PHIÊN BẢN ĐÚNG: Guava 25.1-android là phiên bản cuối cùng có AbstractIdleService
         resolutionStrategy {
-            force 'com.google.guava:guava:27.0.1-android'
+            force 'com.google.guava:guava:25.1-android'
             force 'org.slf4j:slf4j-api:1.7.30'
             force 'com.google.protobuf:protobuf-java:3.11.4'
         }
@@ -67,6 +65,7 @@ dependencies {
     implementation('com.journeyapps:zxing-android-embedded:3.5.0') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
+        exclude group: 'com.google.guava'
     }
     implementation 'com.google.zxing:core:3.4.0'
 
