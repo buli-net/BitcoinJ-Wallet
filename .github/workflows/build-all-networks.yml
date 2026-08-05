@@ -1,9 +1,6 @@
-name: Build BitcoinJ Wallet APK
-
+name: Build BitcoinJ Wallet
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  ANDROID_HOME: /usr/local/lib/android/sdk
-  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
 on:
   push:
@@ -14,32 +11,33 @@ on:
 
 jobs:
   build:
-    name: Build MAINNET APK
+    name: Build APK
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Java 8
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '8'
           distribution: 'zulu'
-          cache: 'gradle'
 
-      - name: Cấp quyền
-        run: chmod +x gradlew
+      # ✅ XÓA CACHE GRADLE CŨ ĐỂ KHÔNG DÙNG GUAVA CŨ
+      - name: Clear Gradle Cache
+        run: rm -rf ~/.gradle/caches
 
-      - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Đổi tên APK
+      - name: Build Debug APK
+        run: ./gradlew clean assembleDebug --stacktrace --no-daemon
+
+      - name: Tìm & Đổi tên APK
         run: |
-          APK=$(find . -name "*debug*.apk" -type f | head -1)
+          APK=$(find . -path "*/build/outputs/apk/debug/*.apk" -type f | head -1)
           mv "$APK" BitcoinJ-Wallet-MAINNET.apk
 
-      - name: Tải APK về
+      - name: Tải APK về máy
         uses: actions/upload-artifact@v4
         with:
           name: BitcoinJ-Wallet-APK
