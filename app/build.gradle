@@ -39,11 +39,14 @@ dependencies {
     implementation 'com.google.zxing:core:3.2.0'
     implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
     implementation 'com.github.kenglxn.QRGen:android:2.2.0'
-  //  implementation 'org.bitcoinj:bitcoinj-core:0.14.4'
+
+    // ✅ Giữ nguyên bitcoinj 0.17.1
     implementation 'org.bitcoinj:bitcoinj-core:0.17.1'
+
     implementation 'com.squareup.okhttp:okhttp:2.7.2'
     implementation 'com.squareup.okio:okio:1.6.0'
-    implementation 'org.slf4j:slf4j-api:1.7.20'
-    implementation 'org.slf4j:slf4j-simple:1.7.12'
-}
 
+    // ✅ ĐỔI SLF4J CHO KHỚP 0.17.1 (bản cũ 1.7.x gây lỗi)
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    implementation 'org.slf4j:slf4j-simple:2.0.16'
+}
