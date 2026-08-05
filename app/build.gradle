@@ -39,7 +39,8 @@ dependencies {
     implementation 'com.google.zxing:core:3.2.0'
     implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
     implementation 'com.github.kenglxn.QRGen:android:2.2.0'
-    implementation 'org.bitcoinj:bitcoinj-core:0.14.4'
+   // implementation 'org.bitcoinj:bitcoinj-core:0.14.4'
+    implementation 'org.bitcoinj:bitcoinj-core:0.16.3'
     implementation 'com.squareup.okhttp:okhttp:2.7.2'
     // ✅ ĐÃ SỬA LỖI QUAN TRỌNG: thiếu tên thư viện okio
     implementation 'com.squareup.okio:okio:1.6.0'
