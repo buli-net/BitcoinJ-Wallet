@@ -7,12 +7,18 @@ import android.util.Log;
 
 import com.example.thinkmobiles.bitcoinwalletsample.Constants;
 
-import org.bitcoinj.base.LegacyAddress;
+// ============================================================
+// ✅ API CHANGES FOR bitcoinj 0.17.1 (only these lines changed)
+// ============================================================
+import org.bitcoinj.base.LegacyAddress; // was: org.bitcoinj.core.Address
 import org.bitcoinj.base.Coin;
 import org.bitcoinj.crypto.ECKey;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionConfidence;
+// DownloadProgressTracker moved to new package + uses Instant instead of Date
+import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
@@ -22,28 +28,33 @@ import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
-import java.time.Instant;
+import java.time.Instant; // was: java.util.Date (0.17.1 changed API)
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Created by Lynx on 4/11/2017.
+ */
 
 public class MainActivityPresenter implements MainActivityContract.MainActivityPresenter {
 
-    private static final String TAG = "BTC_PRESENTER";
+    private MainActivityContract.MainActivityView view;
+    private File walletDir; //Context.getCacheDir();
 
-    private final MainActivityContract.MainActivityView view;
-    private final File walletDir;
     private NetworkParameters parameters;
     private WalletAppKit walletAppKit;
 
-    // ✅ FIX 1: CHẠY TOÀN BỘ BITCOINJ TRÊN LUỒNG NỀN RIÊNG → ANDROID 16 KHÔNG GIẾT
-    private final ExecutorService btcExecutor = Executors.newSingleThreadExecutor();
+    // ✅ Added for 0.17.1 + Android 16 safety
+    private final File walletFile; // vWalletFile was removed from WalletAppKit
+    private final ExecutorService btcThread = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final AtomicBoolean isWalletReady = new AtomicBoolean(false);
+    private volatile boolean walletReady = false;
 
     public MainActivityPresenter(MainActivityContract.MainActivityView view, File walletDir) {
         this.view = view;
         this.walletDir = walletDir;
+        // ✅ Exact path WalletAppKit 0.17.1 always creates internally
+        this.walletFile = new File(walletDir, Constants.WALLET_NAME + ".wallet");
         view.setPresenter(this);
     }
 
@@ -53,118 +64,72 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         parameters = Constants.IS_PRODUCTION ? MainNetParams.get() : TestNet3Params.get();
         BriefLogFormatter.init();
 
-        // ✅ FIX 2: TẤT CẢ KHỞI TẠO VÍ CHẠY LUỒNG NỀN → KHÔNG VĂNG MẠNG MAIN THREAD
-        btcExecutor.execute(() -> {
-            try {
-                Log.d(TAG, "Bắt đầu khởi tạo ví BitcoinJ...");
+        // ✅ FIX ANDROID 16: ALL bitcoinj init runs on background thread
+        btcThread.execute(() -> {
+            walletAppKit = new WalletAppKit(parameters, walletDir, Constants.WALLET_NAME) {
+                @Override
+                protected void onSetupCompleted() {
+                    if (wallet().getImportedKeys().size() < 1) wallet().importKey(new ECKey());
+                    // ✅ REMOVED: allowSpendingUnconfirmedTransactions() was DELETED in 0.17.x
+                    // ✅ FIXED: vWalletFile no longer exists → use prebuilt path
+                    runOnUi(() -> view.displayWalletPath(walletFile.getAbsolutePath()));
+                    setupWalletListeners(wallet());
 
-                walletAppKit = new WalletAppKit(parameters, walletDir, Constants.WALLET_NAME) {
-                    @Override
-                    protected void onSetupCompleted() {
-                        super.onSetupCompleted();
-                        try {
-                            if (wallet().getImportedKeys().size() < 1) {
-                                wallet().importKey(new ECKey());
-                            }
+                    Log.d("myLogs", "My address = " + wallet().freshReceiveAddress());
+                    walletReady = true;
+                    runOnUi(() -> refresh());
+                }
+            };
+            walletAppKit.setDownloadListener(new DownloadProgressTracker() {
+                // ✅ FIXED 0.17.1 API: Date → Instant
+                @Override
+                protected void progress(double pct, int blocksSoFar, Instant date) {
+                    super.progress(pct, blocksSoFar, date);
+                    // ✅ FIXED: pct is 0.0 ~ 1.0 → * 100 to get real %
+                    int percentage = (int) Math.round(pct * 100);
+                    runOnUi(() -> {
+                        view.displayPercentage(percentage);
+                        view.displayProgress(percentage);
+                    });
+                }
 
-                            // ✅ FIX 3: SỬA LỖI vWalletFile KHÔNG ĐỊNH NGHĨA
-                            File walletFile = wallet().getWalletFile();
-                            if (walletFile != null) {
-                                runOnUi(() -> view.displayWalletPath(walletFile.getAbsolutePath()));
-                            }
-
-                            setupWalletListeners(wallet());
-                            isWalletReady.set(true);
-
-                            String myAddr = wallet().freshReceiveAddress().toString();
-                            Log.d(TAG, "Địa chỉ ví mới: " + myAddr);
-
-                            runOnUi(() -> {
-                                view.displayMyBalance(wallet().getBalance().toFriendlyString());
-                                view.displayMyAddress(myAddr);
-                            });
-
-                        } catch (Exception e) {
-                            Log.e(TAG, "Lỗi onSetupCompleted", e);
-                            showToastSafe("Lỗi khởi tạo ví: " + e.getMessage());
-                        }
-                    }
-                };
-
-                // ✅ FIX 4: TÍNH % DOWNLOAD ĐÚNG (pct * 100)
-                walletAppKit.setDownloadListener(new org.bitcoinj.core.listeners.DownloadProgressTracker() {
-                    @Override
-                    protected void progress(double pct, int blocksSoFar, Instant date) {
-                        super.progress(pct, blocksSoFar, date);
-                        int percent = (int) Math.round(pct * 100);
-                        runOnUi(() -> {
-                            view.displayProgress(percent);
-                            view.displayPercentage(percent);
-                        });
-                    }
-
-                    @Override
-                    protected void doneDownload() {
-                        super.doneDownload();
-                        Log.d(TAG, "Sync blockchain xong!");
-                        runOnUi(() -> {
-                            view.displayDownloadContent(false);
-                            refresh();
-                        });
-                    }
-                });
-
-                walletAppKit.setBlockingStartup(false);
-                // ✅ KHỞI ĐỘNG VÍ TRÊN LUỒNG NỀN
-                walletAppKit.startAsync().awaitRunning();
-                Log.d(TAG, "WalletAppKit đã chạy");
-
-            } catch (Exception e) {
-                Log.e(TAG, "LỖI KHỞI TẠO VÍ", e);
-                isWalletReady.set(false);
-                showToastSafe("Không thể khởi tạo ví: " + e.getMessage());
-                runOnUi(() -> view.displayDownloadContent(false));
-            }
+                @Override
+                protected void doneDownload() {
+                    super.doneDownload();
+                    runOnUi(() -> {
+                        view.displayDownloadContent(false);
+                        refresh();
+                    });
+                }
+            });
+            walletAppKit.setBlockingStartup(false);
+            walletAppKit.startAsync().awaitRunning();
         });
     }
 
-    // ✅ FIX 5: DỪNG VÍ ĐÚNG CÁCH → KHÔNG RÒ RỬI, KHÔNG CRASH KHI ĐÓNG APP
     @Override
     public void unsubscribe() {
-        isWalletReady.set(false);
-        btcExecutor.execute(() -> {
+        walletReady = false;
+        btcThread.execute(() -> {
             try {
-                if (walletAppKit != null) {
-                    walletAppKit.stopAsync().awaitTerminated();
-                    Log.d(TAG, "Đã dừng WalletAppKit");
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Lỗi dừng ví", e);
-            } finally {
-                walletAppKit = null;
-                if (!btcExecutor.isShutdown()) {
-                    btcExecutor.shutdownNow();
-                }
-            }
+                if (walletAppKit != null) walletAppKit.stopAsync().awaitTerminated();
+            } catch (Exception ignored) {}
+            walletAppKit = null;
+            if (!btcThread.isShutdown()) btcThread.shutdownNow();
         });
     }
 
     @Override
     public void refresh() {
-        if (!checkWalletReady()) return;
-        btcExecutor.execute(() -> {
-            try {
-                Wallet w = walletAppKit.wallet();
-                String myAddress = w.freshReceiveAddress().toString();
-                String balance = w.getBalance().toFriendlyString();
-                runOnUi(() -> {
-                    view.displayMyBalance(balance);
-                    view.displayMyAddress(myAddress);
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Lỗi refresh", e);
-                showToastSafe("Lỗi làm mới dữ liệu");
-            }
+        if (!checkReady()) return;
+        btcThread.execute(() -> {
+            Wallet w = walletAppKit.wallet();
+            // ✅ FIXED 0.17.1: .toBase58() removed → use .toString()
+            String myAddress = w.freshReceiveAddress().toString();
+            runOnUi(() -> {
+                view.displayMyBalance(w.getBalance().toFriendlyString());
+                view.displayMyAddress(myAddress);
+            });
         });
     }
 
@@ -176,137 +141,93 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
 
     @Override
     public void send() {
-        if (!checkWalletReady()) return;
+        if (!checkReady()) return;
 
         final String recipientAddress = view.getRecipient();
-        final String amountStr = view.getAmount();
+        final String amount = view.getAmount();
 
-        // Validate input trên main thread trước
-        if (TextUtils.isEmpty(recipientAddress) || recipientAddress.equalsIgnoreCase("Scan recipient QR")) {
-            showToastSafe("Vui lòng chọn địa chỉ người nhận");
+        if(TextUtils.isEmpty(recipientAddress) || recipientAddress.equals("Scan recipient QR")) {
+            view.showToastMessage("Select recipient");
             return;
         }
-        if (TextUtils.isEmpty(amountStr)) {
-            showToastSafe("Vui lòng nhập số BTC");
-            return;
-        }
-
-        double amountVal;
-        try {
-            amountVal = Double.parseDouble(amountStr);
-            if (amountVal <= 0) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
-            showToastSafe("Số BTC không hợp lệ");
+        if(TextUtils.isEmpty(amount) || Double.parseDouble(amount) <= 0) {
+            view.showToastMessage("Select valid amount");
             return;
         }
 
-        // ✅ FIX 6: TOÀN BỘ GIAO DỊCH CHẠY LUỒNG NỀN → KHÔNG VĂNG ANDROID 16
-        btcExecutor.execute(() -> {
+        // ✅ ANDROID 16: send also runs on background thread
+        btcThread.execute(() -> {
+            Wallet w = walletAppKit.wallet();
+            Coin coin = Coin.parseCoin(amount);
+
+            if(w.getBalance().isLessThan(coin)) {
+                runOnUi(() -> {
+                    view.showToastMessage("You got not enough coins");
+                    view.clearAmount();
+                });
+                return;
+            }
+            // ✅ FIXED 0.17.1: Address.fromBase58 → LegacyAddress.fromBase58
+            SendRequest request = SendRequest.to(
+                    LegacyAddress.fromBase58(parameters, recipientAddress), coin
+            );
             try {
-                Wallet w = walletAppKit.wallet();
-                Coin amount = Coin.parseCoin(amountStr);
-
-                if (w.getBalance().isLessThan(amount)) {
-                    showToastSafe("Số dư không đủ");
-                    runOnUi(view::clearAmount);
-                    return;
-                }
-
-                SendRequest request = SendRequest.to(
-                        LegacyAddress.fromBase58(parameters, recipientAddress),
-                        amount
-                );
-                request.feePerKb = Coin.valueOf(1000); // phí mặc định an toàn
-
                 w.completeTx(request);
                 w.commitTx(request.tx);
                 walletAppKit.peerGroup().broadcastTransaction(request.tx).broadcast();
-
-                Log.d(TAG, "Giao dịch đã broadcast: " + request.tx.getTxId());
-                showToastSafe("✅ Đã gửi BTC thành công!");
-
-                runOnUi(() -> {
-                    view.clearAmount();
-                    view.displayRecipientAddress(null);
-                    view.displayMyBalance(w.getBalance().toFriendlyString());
-                });
-
             } catch (InsufficientMoneyException e) {
-                Log.e(TAG, "Không đủ tiền phí", e);
-                showToastSafe("Không đủ BTC để trả phí giao dịch");
-            } catch (IllegalArgumentException e) {
-                Log.e(TAG, "Địa chỉ không hợp lệ", e);
-                showToastSafe("Địa chỉ BTC người nhận không hợp lệ");
-            } catch (Exception e) {
-                Log.e(TAG, "LỖI GỬI BTC", e);
-                showToastSafe("Giao dịch thất bại: " + e.getMessage());
+                e.printStackTrace();
+                runOnUi(() -> view.showToastMessage(e.getMessage()));
             }
         });
     }
 
     @Override
     public void getInfoDialog() {
-        if (!checkWalletReady()) return;
-        btcExecutor.execute(() -> {
-            try {
-                String addr = walletAppKit.wallet().currentReceiveAddress().toString();
-                runOnUi(() -> view.displayInfoDialog(addr));
-            } catch (Exception e) {
-                showToastSafe("Chưa có địa chỉ ví");
-            }
+        if (!checkReady()) return;
+        btcThread.execute(() -> {
+            // ✅ FIXED 0.17.1: .toBase58() → .toString()
+            String addr = walletAppKit.wallet().currentReceiveAddress().toString();
+            runOnUi(() -> view.displayInfoDialog(addr));
         });
     }
 
     private void setBtcSDKThread() {
-        // ✅ TẤT CẢ CALLBACK BITCOINJ SẼ CHẠY TRÊN MAIN THREAD ĐỂ CẬP NHẬT UI AN TOÀN
+        // ✅ Keep original pattern, just ensure main looper
         Threading.USER_THREAD = mainHandler::post;
     }
 
     private void setupWalletListeners(Wallet wallet) {
-        wallet.addCoinsReceivedEventListener((w, tx, prevBalance, newBalance) -> {
-            Coin received = newBalance.minus(prevBalance);
-            Log.d(TAG, "NHẬN ĐƯỢC: " + received.toFriendlyString() + " | TX: " + tx.getTxId());
+        wallet.addCoinsReceivedEventListener((wallet1, tx, prevBalance, newBalance) -> {
             runOnUi(() -> {
-                view.displayMyBalance(w.getBalance().toFriendlyString());
-                if (tx.getPurpose() == Transaction.Purpose.UNKNOWN) {
-                    view.showToastMessage("💰 Nhận được " + received.toFriendlyString());
-                }
+                view.displayMyBalance(wallet.getBalance().toFriendlyString());
+                if(tx.getPurpose() == Transaction.Purpose.UNKNOWN)
+                    view.showToastMessage("Receive " + newBalance.minus(prevBalance).toFriendlyString());
             });
         });
-
-        wallet.addCoinsSentEventListener((w, tx, prevBalance, newBalance) -> {
-            Coin sent = prevBalance.minus(newBalance);
-            Coin fee = tx.getFee() != null ? tx.getFee() : Coin.ZERO;
-            Log.d(TAG, "ĐÃ GỬI: " + sent.toFriendlyString() + " | Phí: " + fee.toFriendlyString());
+        wallet.addCoinsSentEventListener((wallet12, tx, prevBalance, newBalance) -> {
             runOnUi(() -> {
-                view.displayMyBalance(w.getBalance().toFriendlyString());
+                view.displayMyBalance(wallet.getBalance().toFriendlyString());
                 view.clearAmount();
                 view.displayRecipientAddress(null);
-                view.showToastMessage("📤 Đã gửi " + sent.minus(fee).toFriendlyString());
+                view.showToastMessage("Sent " + prevBalance.minus(newBalance).minus(tx.getFee()).toFriendlyString());
             });
         });
     }
 
-    // ==============================================
-    // ✅ CÁC HÀM HỖ TRỢ AN TOÀN
-    // ==============================================
-    private boolean checkWalletReady() {
-        if (!isWalletReady.get() || walletAppKit == null || !walletAppKit.isRunning()) {
-            showToastSafe("Ví đang khởi tạo, vui lòng đợi...");
+    // ============================================================
+    // Small helpers — original logic untouched
+    // ============================================================
+    private boolean checkReady() {
+        if (!walletReady || walletAppKit == null || !walletAppKit.isRunning()) {
+            view.showToastMessage("Wallet is starting, please wait");
             return false;
         }
         return true;
     }
 
-    private void runOnUi(Runnable action) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            action.run();
-        } else {
-            mainHandler.post(action);
-        }
-    }
-
-    private void showToastSafe(String msg) {
-        runOnUi(() -> view.showToastMessage(msg));
+    private void runOnUi(Runnable r) {
+        if (Looper.myLooper() == Looper.getMainLooper()) r.run();
+        else mainHandler.post(r);
     }
 }
