@@ -13,7 +13,6 @@ android {
         versionName "1.0"
         multiDexEnabled true
 
-        // ==== BẬT XỬ LÝ ANNOTATION CỦA ANDROIDANNOTATIONS ====
         javaCompileOptions {
             annotationProcessorOptions {
                 includeCompileClasspath true
@@ -32,31 +31,38 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    // ==== LOẠI BỎ TOÀN BỘ LỚP TRÙNG LẶP ====
+    packagingOptions {
+        exclude 'META-INF/jsr305_annotations/**'
+        exclude 'META-INF/jcip_annotations/**'
+        exclude 'META-INF/annotations/**'
+    }
 }
 
 dependencies {
-    // Thư viện Android cơ bản
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:25.4.0'
     implementation 'com.android.support:design:25.4.0'
     implementation 'com.android.support:support-v4:25.4.0'
     implementation 'com.android.support:recyclerview-v7:25.4.0'
 
-    // Retrolambda
     implementation 'me.tatarka:gradle-retrolambda:3.7.0'
 
-    // ==== THƯ VIỆN ĐANG THIẾU – BẮT BUỘC PHẢI CÓ ====
     // AndroidAnnotations
     implementation 'org.androidannotations:androidannotations:4.6.0'
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
 
-    // Quét mã QR ZXing
+    // Quét QR
     implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
     implementation 'com.google.zxing:core:3.4.0'
 
-    // Tạo mã QR
+    // Tạo QR
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // Bitcoinj
-    implementation 'org.bitcoinj:bitcoinj-core:0.17'
+    // Bitcoinj + LOẠI BỎ THƯ VIỆN TRÙNG
+    implementation ('org.bitcoinj:bitcoinj-core:0.17') {
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+        exclude group: 'net.jcip', module: 'jcip-annotations'
+    }
 }
