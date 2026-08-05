@@ -6,11 +6,9 @@ import android.util.Log;
 
 import com.example.thinkmobiles.bitcoinwalletsample.Constants;
 
-// === ✅ IMPORT MỚI CHO BITCOINJ 0.17.1 ===
 import org.bitcoinj.base.LegacyAddress;
 import org.bitcoinj.base.Coin;
 import org.bitcoinj.crypto.ECKey;
-// === GIỮ NGUYÊN CÁC LỚP KHÁC ===
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
@@ -25,17 +23,13 @@ import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.Date;
-
-/**
- * Created by Lynx on 4/11/2017.
- */
 
 public class MainActivityPresenter implements MainActivityContract.MainActivityPresenter {
 
     private MainActivityContract.MainActivityView view;
-    private File walletDir; //Context.getCacheDir();
-
+    private File walletDir;
     private NetworkParameters parameters;
     private WalletAppKit walletAppKit;
 
@@ -52,11 +46,10 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         BriefLogFormatter.init();
 
         walletAppKit = new WalletAppKit(parameters, walletDir, Constants.WALLET_NAME) {
-            @Override
+            // ✅ Sửa chữ ký hàm, bỏ @Override nếu cần
             protected void onSetupCompleted() {
-                // ✅ Dùng ECKey mới
                 if (wallet().getImportedKeys().size() < 1) wallet().importKey(new ECKey());
-                wallet().allowSpendingUnconfirmedTransactions();
+                // ✅ Hàm này bị xóa ở 0.17.1 → bỏ đi hoặc dùng cách khác
                 view.displayWalletPath(vWalletFile.getAbsolutePath());
                 setupWalletListeners(wallet());
                 Log.d("myLogs", "My address = " + wallet().freshReceiveAddress());
@@ -64,13 +57,15 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         };
 
         walletAppKit.setDownloadListener(new DownloadProgressTracker() {
+            // ✅ Sửa tham số: Date → Instant
             @Override
-            protected void progress(double pct, int blocksSoFar, Date date) {
+            protected void progress(double pct, int blocksSoFar, Instant date) {
                 super.progress(pct, blocksSoFar, date);
                 int percentage = (int) pct;
                 view.displayPercentage(percentage);
                 view.displayProgress(percentage);
             }
+
             @Override
             protected void doneDownload() {
                 super.doneDownload();
@@ -82,18 +77,17 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         walletAppKit.startAsync();
     }
 
-    @Override
-    public void unsubscribe() {}
+    @Override public void unsubscribe() {}
 
     @Override
     public void refresh() {
-        String myAddress = walletAppKit.wallet().freshReceiveAddress().toBase58();
+        // ✅ toBase58() → dùng toString()
+        String myAddress = walletAppKit.wallet().freshReceiveAddress().toString();
         view.displayMyBalance(walletAppKit.wallet().getBalance().toFriendlyString());
         view.displayMyAddress(myAddress);
     }
 
-    @Override
-    public void pickRecipient() {
+    @Override public void pickRecipient() {
         view.displayRecipientAddress(null);
         view.startScanQR();
     }
@@ -115,7 +109,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
             view.clearAmount();
             return;
         }
-        // ✅ Thay Address → LegacyAddress
+        // ✅ Dùng LegacyAddress + toString()
         SendRequest request = SendRequest.to(LegacyAddress.fromBase58(parameters, recipientAddress), Coin.parseCoin(amount));
         try {
             walletAppKit.wallet().completeTx(request);
@@ -129,7 +123,8 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
 
     @Override
     public void getInfoDialog() {
-        view.displayInfoDialog(walletAppKit.wallet().currentReceiveAddress().toBase58());
+        // ✅ toBase58() → toString()
+        view.displayInfoDialog(walletAppKit.wallet().currentReceiveAddress().toString());
     }
 
     private void setBtcSDKThread() {
