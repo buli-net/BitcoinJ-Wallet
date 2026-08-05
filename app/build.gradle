@@ -36,17 +36,16 @@ android {
     }
 }
 
-configurations {
-    all {
-        exclude group: 'com.google.code.findbugs', module: 'jsr305'
-        exclude group: 'com.google.code.findbugs', module: 'annotations'
-        exclude group: 'net.jcip', module: 'jcip-annotations'
-        // ✅ KHÓA PHIÊN BẢN ĐÚNG TƯƠNG THÍCH BITCOINJ 0.17.1
-        resolutionStrategy {
-            force 'com.google.guava:guava:25.1-android'
-            force 'org.slf4j:slf4j-api:1.7.30'
-            force 'com.google.protobuf:protobuf-java:3.11.4'
-        }
+configurations.all {
+    exclude group: 'com.google.code.findbugs', module: 'jsr305'
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
+    exclude group: 'net.jcip', module: 'jcip-annotations'
+    
+    // ✅ BUỘC ĐÚNG PHIÊN BẢN - KHÔNG ĐỂ THƯ VIỆN NÀO KÉO BẢN KHÁC
+    resolutionStrategy {
+        force 'com.google.guava:guava:25.1-android'
+        force 'org.slf4j:slf4j-api:1.7.30'
+        force 'com.google.protobuf:protobuf-java:3.11.4'
     }
 }
 
@@ -71,7 +70,7 @@ dependencies {
 
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // ✅ BITCOINJ 0.17.1 + LOẠI BỎ XUNG ĐỘT PHỤ THUỘC
+    // ✅ BITCOINJ 0.17.1 + LOẠI BỎ HOÀN TOÀN XUNG ĐỘT
     implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
@@ -79,4 +78,7 @@ dependencies {
         exclude group: 'org.slf4j'
         exclude group: 'com.google.protobuf'
     }
+    
+    // ✅ THÊM RIÊNG GUAVA ĐÚNG BẢN ĐỂ CHẮC CHẮN CÓ AbstractIdleService
+    implementation 'com.google.guava:guava:25.1-android'
 }
