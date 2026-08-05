@@ -3,6 +3,8 @@ name: Build BitcoinJ Wallet APK
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   SKIP_JDK_VERSION_CHECK: "true"
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
 on:
   push:
@@ -28,16 +30,12 @@ jobs:
           distribution: 'zulu'
           cache: 'gradle'
 
-      # ==== QUAN TRỌNG: DÙNG CMDLINE-TOOLS 5.0 - HỖ TRỢ JDK 8 ====
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '5.0'
-          accept-android-sdk-licenses: true
-          packages: 'tools platform-tools build-tools;26.0.3 platforms;android-26'
-
-      - name: Cấp quyền chạy
-        run: chmod +x gradlew
+      # ==== KHÔNG CẦN DOWNLOAD CMDLINE-TOOLS MỚI ====
+      # Máy ảnh đã có sẵn SDK + build-tools cũ tương thích
+      - name: Cấp quyền & Cài đặt thiếu (nếu có)
+        run: |
+          chmod +x gradlew
+          yes | $ANDROID_HOME/tools/bin/sdkmanager "build-tools;26.0.3" "platforms;android-26"
 
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
