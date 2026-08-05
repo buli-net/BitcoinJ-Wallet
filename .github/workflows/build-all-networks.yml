@@ -21,7 +21,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ==== JDK 8 - ĐÚNG CHO AGP 3.6.4 ====
       - name: Setup Java 8
         uses: actions/setup-java@v4
         with:
@@ -29,15 +28,13 @@ jobs:
           distribution: 'zulu'
           cache: 'gradle'
 
-      # ==== KHÔNG CẦN CHẠY SDKMANAGER GÌ CẢ ====
-      # Máy ảnh đã có sẵn đủ build-tools 26.0.3 & android-26
-      - name: Cấp quyền Gradle
+      - name: Cấp quyền
         run: chmod +x gradlew
 
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Đổi tên file APK
+      - name: Đổi tên APK
         run: |
           APK=$(find . -name "*debug*.apk" -type f | head -1)
           mv "$APK" BitcoinJ-Wallet-MAINNET.apk
