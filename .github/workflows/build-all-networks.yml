@@ -1,8 +1,6 @@
 name: Build BitcoinJ Wallet
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  # ✅ Bỏ qua kiểm tra phiên bản JDK cho sdkmanager
-  SKIP_JDK_VERSION_CHECK: "true"
 
 on:
   push:
@@ -24,17 +22,16 @@ jobs:
           java-version: '8'
           distribution: 'zulu'
 
-      # ✅ XÓA CACHE + CLEAN DỰ ÁN
+      # ✅ XÓA HẾT CACHE CŨ
       - name: Clear Gradle Cache
         run: rm -rf ~/.gradle/caches
 
-      # ✅ KHÔNG CÀI CMDLINE-TOOLS MỚI → DÙNG BẢN CÓ SẴN TƯƠNG THÍCH
+      # ✅ QUAN TRỌNG NHẤT: KHÔNG GHI cmdline-tools-version → TỰ DÙNG BẢN CŨ TƯƠNG THÍCH
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
-          # KHÔNG ĐỊNH NGHĨA cmdline-tools-version → tự động dùng bản cũ tương thích JDK 8
-          packages: "tools platform-tools build-tools;28.0.3"
+          packages: "platform-tools build-tools;28.0.3"
 
       - name: Build Debug APK
         run: ./gradlew clean assembleDebug --stacktrace --no-daemon
