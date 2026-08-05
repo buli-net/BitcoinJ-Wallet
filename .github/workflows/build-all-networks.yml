@@ -31,13 +31,14 @@ jobs:
         with:
           cmdline-tools-version: 8092744
           accept-android-sdk-licenses: true
-          packages: "platform-tools build-tools;34.0.0 platforms;android-34"
+          packages: "platform-tools build-tools;28.0.3 platforms;android-28"
 
-      - name: Xóa build-tools mới gây lỗi parse
+      # ✅ XÓA HẾT BUILD-TOOLS KHÁC → KHÔNG LỖI Not a number: 37.x
+      - name: Giữ lại build-tools 28.0.3 duy nhất
         run: |
           cd $ANDROID_HOME/build-tools
           for dir in *; do
-            [ "$dir" = "34.0.0" ] || rm -rf "$dir"
+            [ "$dir" = "28.0.3" ] || rm -rf "$dir"
           done
 
       - name: chmod +x gradlew
