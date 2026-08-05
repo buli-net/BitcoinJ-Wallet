@@ -6,7 +6,8 @@ android {
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.thinkmobiles.bitcoinwalletsample"
-        minSdkVersion 24
+        // ✅ TĂNG LÊN 26: HỖ TRỢ ĐẦY ĐỦ JAVA 8 LAMBDA / INVOKE-CUSTOM
+        minSdkVersion 26
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -41,7 +42,6 @@ configurations.all {
     exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'net.jcip', module: 'jcip-annotations'
     
-    // ✅ BUỘC ĐÚNG PHIÊN BẢN - KHÔNG ĐỂ THƯ VIỆN NÀO KÉO BẢN KHÁC
     resolutionStrategy {
         force 'com.google.guava:guava:25.1-android'
         force 'org.slf4j:slf4j-api:1.7.30'
@@ -70,7 +70,6 @@ dependencies {
 
     implementation 'net.glxn.qrgen:android:2.0'
 
-    // ✅ BITCOINJ 0.17.1 + LOẠI BỎ HOÀN TOÀN XUNG ĐỘT
     implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'net.jcip'
@@ -79,6 +78,5 @@ dependencies {
         exclude group: 'com.google.protobuf'
     }
     
-    // ✅ THÊM RIÊNG GUAVA ĐÚNG BẢN ĐỂ CHẮC CHẮN CÓ AbstractIdleService
     implementation 'com.google.guava:guava:25.1-android'
 }
