@@ -6,9 +6,11 @@ import android.util.Log;
 
 import com.example.thinkmobiles.bitcoinwalletsample.Constants;
 
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
+// === ✅ IMPORT MỚI CHO BITCOINJ 0.17.1 ===
+import org.bitcoinj.base.LegacyAddress;
+import org.bitcoinj.base.Coin;
+import org.bitcoinj.crypto.ECKey;
+// === GIỮ NGUYÊN CÁC LỚP KHÁC ===
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
@@ -40,7 +42,6 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
     public MainActivityPresenter(MainActivityContract.MainActivityView view, File walletDir) {
         this.view = view;
         this.walletDir = walletDir;
-
         view.setPresenter(this);
     }
 
@@ -53,14 +54,15 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         walletAppKit = new WalletAppKit(parameters, walletDir, Constants.WALLET_NAME) {
             @Override
             protected void onSetupCompleted() {
+                // ✅ Dùng ECKey mới
                 if (wallet().getImportedKeys().size() < 1) wallet().importKey(new ECKey());
                 wallet().allowSpendingUnconfirmedTransactions();
                 view.displayWalletPath(vWalletFile.getAbsolutePath());
                 setupWalletListeners(wallet());
-
                 Log.d("myLogs", "My address = " + wallet().freshReceiveAddress());
             }
         };
+
         walletAppKit.setDownloadListener(new DownloadProgressTracker() {
             @Override
             protected void progress(double pct, int blocksSoFar, Date date) {
@@ -69,7 +71,6 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
                 view.displayPercentage(percentage);
                 view.displayProgress(percentage);
             }
-
             @Override
             protected void doneDownload() {
                 super.doneDownload();
@@ -82,17 +83,13 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
     }
 
     @Override
-    public void unsubscribe() {
-
-    }
+    public void unsubscribe() {}
 
     @Override
     public void refresh() {
         String myAddress = walletAppKit.wallet().freshReceiveAddress().toBase58();
-
         view.displayMyBalance(walletAppKit.wallet().getBalance().toFriendlyString());
         view.displayMyAddress(myAddress);
-
     }
 
     @Override
@@ -118,7 +115,8 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
             view.clearAmount();
             return;
         }
-        SendRequest request = SendRequest.to(Address.fromBase58(parameters, recipientAddress), Coin.parseCoin(amount));
+        // ✅ Thay Address → LegacyAddress
+        SendRequest request = SendRequest.to(LegacyAddress.fromBase58(parameters, recipientAddress), Coin.parseCoin(amount));
         try {
             walletAppKit.wallet().completeTx(request);
             walletAppKit.wallet().commitTx(request.tx);
@@ -127,7 +125,6 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
             e.printStackTrace();
             view.showToastMessage(e.getMessage());
         }
-
     }
 
     @Override
@@ -144,7 +141,7 @@ public class MainActivityPresenter implements MainActivityContract.MainActivityP
         wallet.addCoinsReceivedEventListener((wallet1, tx, prevBalance, newBalance) -> {
             view.displayMyBalance(wallet.getBalance().toFriendlyString());
             if(tx.getPurpose() == Transaction.Purpose.UNKNOWN)
-            view.showToastMessage("Receive " + newBalance.minus(prevBalance).toFriendlyString());
+                view.showToastMessage("Receive " + newBalance.minus(prevBalance).toFriendlyString());
         });
         wallet.addCoinsSentEventListener((wallet12, tx, prevBalance, newBalance) -> {
             view.displayMyBalance(wallet.getBalance().toFriendlyString());
