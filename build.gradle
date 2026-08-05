@@ -4,8 +4,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // ✅ AGP 4.1.3: CHẠY JDK 8, HỖ TRỢ ĐẾN ANDROID 14/16
-        classpath 'com.android.tools.build:gradle:4.1.3'
+        // ✅ GỮ NGUYÊN AGP 3.6.4: KHỚP DỰ ÁN, CHẠY JDK 8
+        classpath 'com.android.tools.build:gradle:3.6.4'
     }
 }
 
@@ -13,7 +13,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        // ✅ CHỈ GỬ JITPACK NẾU CẦN (qrgen cũ / thư viện đặc biệt)
+        // ✅ CHỈ JITPACK NẾU CẦN (QRGEN)
         maven { url 'https://jitpack.io' }
     }
 }
