@@ -1,4 +1,4 @@
-name: Build Bitcoin Wallet
+name: Build Bitcoin Wallet 0.17.1
 
 env:
   ANDROID_HOME: /usr/local/lib/android/sdk
@@ -14,31 +14,30 @@ on:
 jobs:
   build:
     name: Build APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # ✅ ubuntu 20.04 có SDK cũ tương thích compileSdk 26
     steps:
-      - name: Lấy mã nguồn
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cài JDK 8 (bắt buộc cho dự án cũ)
-        uses: actions/setup-java@v4
+      # ✅ BẮT BUỘC: JDK 11 cho Gradle 5.6.4 + AGP 3.6.4 + bitcoinj 0.17.1
+      - uses: actions/setup-java@v4
         with:
-          java-version: '8'
+          java-version: '11'
           distribution: 'zulu'
           cache: 'gradle'
 
-      - name: Cấp quyền & Cài SDK đúng phiên bản
+      - name: Quyền & Cài SDK
         run: |
           chmod +x gradlew
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;26.0.2" "platforms;android-26" > /dev/null 2>&1 || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;26.0.3" "platforms;android-26" > /dev/null 2>&1 || true
 
-      - name: Build theo cấu hình trong code
+      - name: Build APK
         run: ./gradlew clean assembleDebug --stacktrace --no-daemon
 
       - name: Lưu APK
-        run: mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet.apk
+        run: mv app/build/outputs/apk/debug/app-debug.apk BitcoinJ-Wallet-0.17.1.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BitcoinJ-Wallet-APK
-          path: BitcoinJ-Wallet.apk
+          name: BitcoinJ-Wallet-0.17.1-APK
+          path: BitcoinJ-Wallet-0.17.1.apk
           retention-days: 90
