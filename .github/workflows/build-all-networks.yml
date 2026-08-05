@@ -23,7 +23,7 @@ jobs:
           java-version: '8'
           distribution: 'zulu'
 
-      - name: Xóa cache cũ
+      - name: Xóa cache Gradle cũ
         run: rm -rf ~/.gradle/caches
 
       - name: Setup Android SDK
@@ -31,9 +31,21 @@ jobs:
         with:
           cmdline-tools-version: 8092744
           accept-android-sdk-licenses: true
-          packages: "platform-tools build-tools;28.0.3"
+          packages: "platform-tools build-tools;28.0.3 platforms;android-28"
 
-      # ✅ THÊM DÒNG NÀY: CẤP QUYỀN THỰC THI CHO gradlew
+      # ✅ SỬA LỖI NumberFormatException: XÓA HẾT BUILD-TOOLS MỚI > 28
+      - name: Xóa build-tools phiên bản mới gây lỗi
+        run: |
+          cd $ANDROID_HOME/build-tools
+          ls -la
+          for dir in *; do
+            if [ "$dir" != "28.0.3" ]; then
+              echo "Xóa build-tools không dùng: $dir"
+              rm -rf "$dir"
+            fi
+          done
+          ls -la
+
       - name: Cấp quyền gradlew
         run: chmod +x gradlew
 
