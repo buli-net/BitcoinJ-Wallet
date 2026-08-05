@@ -13,7 +13,7 @@ android {
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
 
-        // ✅ FIX GString → String: thêm .toString() cho AndroidAnnotations
+        // ✅ ĐÃ FIX GString → String HOÀN TOÀN
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments = [
@@ -31,15 +31,17 @@ android {
         }
     }
 
-    // ✅ Java 8 bắt buộc cho bitcoinj 0.17.1
+    // ✅ Bắt buộc Java 8 cho bitcoinj 0.17.1
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    // ✅ TĂNG DUNG LƯỢNG + TẮT TỐI ƯU TRƯỚC → KHÔNG BỊ NPE D8
     dexOptions {
         preDexLibraries false
-        javaMaxHeapSize "4g"
+        javaMaxHeapSize "6g"
+        incremental false
     }
 
     lintOptions {
@@ -50,7 +52,7 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    // ✅ GIỮ NGUYÊN support library 26.0.2
+    // ✅ GIỮ NGUYÊN SUPPORT LIBRARY GỐC
     implementation 'com.android.support:appcompat-v7:26.0.2'
     implementation 'com.android.support:design:26.0.2'
     implementation 'com.android.support:recyclerview-v7:26.0.2'
@@ -58,17 +60,17 @@ dependencies {
     implementation 'com.android.support:transition:26.0.2'
     implementation 'com.android.support:multidex:1.0.3'
 
-    // ✅ AndroidAnnotations 4.6.0
+    // ✅ AndroidAnnotations
     implementation 'org.androidannotations:androidannotations-api:4.6.0'
     annotationProcessor 'org.androidannotations:androidannotations:4.6.0'
 
-    // ✅ QR code
+    // ✅ QR Code
     implementation 'com.google.zxing:core:3.2.0'
     implementation 'com.journeyapps:zxing-android-embedded:3.5.0'
     implementation 'com.github.kenglxn.QRGen:android:2.2.0'
 
     // ==============================================
-    // ✅ BITCOINJ 0.17.1 HOÀN CHỈNH
+    // ✅ BITCOINJ 0.17.1 - ĐÃ LOẠI TRỪ TRÙNG LẶP
     // ==============================================
     implementation('org.bitcoinj:bitcoinj-core:0.17.1') {
         exclude group: 'com.google.guava', module: 'guava'
@@ -77,11 +79,11 @@ dependencies {
     implementation 'com.google.guava:guava:27.1-android'
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
 
-    // ✅ Network
+    // ✅ Mạng
     implementation 'com.squareup.okhttp:okhttp:2.7.2'
     implementation 'com.squareup.okio:okio:1.6.0'
 
-    // ✅ SLF4J 2.x bắt buộc cho 0.17.1
-    implementation 'org.slf4j:slf4j-api:2.0.16'
-    implementation 'org.slf4j:slf4j-simple:2.0.16'
+    // ✅ Log cho bitcoinj
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'org.slf4j:slf4j-simple:1.7.36'
 }
